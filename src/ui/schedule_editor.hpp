@@ -17,6 +17,7 @@ class QNetworkReply;
 class QPushButton;
 class QTableWidget;
 class QTextEdit;
+class DemoAppContext;
 
 class ScheduleEditorWindow : public QMainWindow
 {
@@ -24,6 +25,11 @@ class ScheduleEditorWindow : public QMainWindow
 
 public:
     explicit ScheduleEditorWindow(QWidget *parent = nullptr);
+
+    // Sprint 3 (A3): bind this panel to the shared app context. The schedule
+    // id field reads/writes through the context and reacts to its changes.
+    void setContext(DemoAppContext *context);
+    DemoAppContext *context() const { return m_context; }
 
 private slots:
     void onAddStage();
@@ -56,6 +62,7 @@ private:
 
     QNetworkAccessManager m_net;
     QString m_baseUrl;
+    DemoAppContext *m_context;
 };
 
 #endif // PATCHORCHESTRATOR_UI_SCHEDULE_EDITOR_HPP

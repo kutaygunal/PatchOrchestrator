@@ -8,6 +8,7 @@
 // PATCHORCH_API_URL env var (default http://localhost:5000).
 
 #include "control_panel.hpp"
+#include "demo_app_context.hpp"
 #include "log.hpp"
 
 #include <QGroupBox>
@@ -56,6 +57,7 @@ ControlPanelWindow::ControlPanelWindow(QWidget *parent)
     , m_refreshButton(nullptr)
     , m_statusLabel(nullptr)
     , m_baseUrl(envOr("PATCHORCH_API_URL", QStringLiteral("http://localhost:5000")))
+    , m_context(nullptr)
 {
     setWindowTitle(QStringLiteral("PatchOrchestrator — Control Panel"));
     resize(560, 360);
@@ -106,6 +108,39 @@ void ControlPanelWindow::buildUi()
     connect(m_resumeButton, &QPushButton::clicked, this, &ControlPanelWindow::onResume);
     connect(m_rollbackButton, &QPushButton::clicked, this, &ControlPanelWindow::onRollback);
     connect(m_refreshButton, &QPushButton::clicked, this, &ControlPanelWindow::onRefreshStatus);
+}
+
+void ControlPanelWindow::setContext(DemoAppContext *context)
+{
+    m_context = context;
+    if (m_context == nullptr)
+        return;
+
+    // Adopt the shared values as the panel's working state.
+    m_baseUrl = m_context->apiBaseUrl();
+    m_scheduleId->setText(m_context->scheduleId());
+    setStatusMessage(QStringLiteral("API base URL: %1").arg(m_baseUrl));
+
+    // Propagate shared-state changes into this panel.
+    connect(m_context, &DemoAppContext::apiBaseUrlChanged, this,
+            [this](const QString &url) { m_baseUrl = url; });
+    connect(m_context, &DemoAppContext::scheduleIdChanged, this,
+            [this](const QString &id) { m_scheduleId->setText(id); });
+    connect(m_context, &DemoAppContext::rolloutStateChanged, this,
+            [this](const QString &state) {
+                setStatusMessage(QStringLiteral("Schedule %1 — status: %2")
+                                     .arg(m_scheduleId->text().trimmed(), state));
+            });
+
+    // Write local edits back into the shared context (change-only setters make
+    // the echo from scheduleIdChanged a no-op, so there is no feedback loop).
+    connect(m_scheduleId, &QLineEdit::textChanged, this,
+            [this](const QString &text) { m_context->setScheduleId(text.trimmed()); });
+}
+
+void ControlPanelWindow::setScheduleIdText(const QString &id)
+{
+    m_scheduleId->setText(id);
 }
 
 QString ControlPanelWindow::scheduleId() const
@@ -257,12 +292,15 @@ void ControlPanelWindow::onReply(QNetworkReply *reply)
     }
     PATCHORCH_LOG_INFO(QStringLiteral("API request succeeded for %1").arg(url));
 
-    // If this was a status query, surface the status field prominently.
+    // If this was a status query, surface the status field prominently and
+    // publish it to the shared context so other panels react.
     if (url.endsWith(QStringLiteral("/status"))) {
         const QJsonDocument doc = QJsonDocument::fromJson(payload);
         const QJsonObject root = doc.object();
         const QString status =
             root.value(QStringLiteral("status")).toString(QStringLiteral("unknown"));
+        if (m_context != nullptr)
+            m_context->setRolloutState(status);
         setStatusMessage(QStringLiteral("Schedule %1 — status: %2")
                              .arg(scheduleId(), status));
         return;

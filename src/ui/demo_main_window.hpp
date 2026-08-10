@@ -19,6 +19,7 @@ class QTabWidget;
 class DashboardWindow;
 class ScheduleEditorWindow;
 class ControlPanelWindow;
+class DemoAppContext;
 
 class DemoMainWindow : public QMainWindow
 {
@@ -32,6 +33,9 @@ public:
     ScheduleEditorWindow *scheduleEditor() const { return m_schedule; }
     ControlPanelWindow *controlPanel() const { return m_control; }
     QTabWidget *tabWidget() const { return m_tabs; }
+
+    // Sprint 3 (A3): the single shared app context bound to all three panels.
+    DemoAppContext *context() const { return m_context; }
 
     // Layout persistence (Sprint 2 / A2). saveLayout() writes the current
     // window state and tab order to QSettings and returns the serialized
@@ -47,6 +51,7 @@ private:
     DashboardWindow *m_dashboard;
     ScheduleEditorWindow *m_schedule;
     ControlPanelWindow *m_control;
+    DemoAppContext *m_context;
 };
 
 #endif // PATCHORCHESTRATOR_UI_DEMO_MAIN_WINDOW_HPP

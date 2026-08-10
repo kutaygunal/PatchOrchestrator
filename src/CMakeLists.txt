@@ -115,6 +115,7 @@ if(Qt6_FOUND)
     add_executable(patchorchestrator_demo
         ui/demo_main.cpp
         ui/demo_main_window.cpp
+        ui/demo_app_context.cpp
         ui/dashboard.cpp
         ui/schedule_editor.cpp
         ui/control_panel.cpp

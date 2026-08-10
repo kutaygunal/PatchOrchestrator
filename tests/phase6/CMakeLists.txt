@@ -47,6 +47,7 @@ if(Qt6_FOUND)
     add_executable(a2_layout_tests
         a2_layout_tests.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/demo_main_window.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/dashboard.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/schedule_editor.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/control_panel.cpp
@@ -68,5 +69,36 @@ if(Qt6_FOUND)
     add_test(NAME a2_persistence
              COMMAND a2_layout_tests t3_persistenceAcrossRestarts)
     set_tests_properties(a2_layout_roundtrip a2_embedding a2_persistence
+        PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+    # --- Sprint 3 (A3) shared app state tests (Qt Test) ---------------------
+    # Builds DemoAppContext plus the demo hub and the three embedded widgets
+    # and runs the context set/get, signal-emission, and shared-context tests
+    # offscreen.
+    add_executable(a3_context_tests
+        a3_context_tests.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_main_window.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/dashboard.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/schedule_editor.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/control_panel.cpp
+    )
+    target_include_directories(a3_context_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
+    target_link_libraries(a3_context_tests PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
+    target_compile_features(a3_context_tests PRIVATE cxx_std_17)
+
+    if(MSVC)
+        target_compile_options(a3_context_tests PRIVATE /W4)
+    else()
+        target_compile_options(a3_context_tests PRIVATE -Wall -Wextra)
+    endif()
+
+    add_test(NAME a3_state_setget
+             COMMAND a3_context_tests t1_stateSetGet)
+    add_test(NAME a3_signals
+             COMMAND a3_context_tests t2_signalEmission)
+    add_test(NAME a3_shared_context
+             COMMAND a3_context_tests t3_sharedContext)
+    set_tests_properties(a3_state_setget a3_signals a3_shared_context
         PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 endif()

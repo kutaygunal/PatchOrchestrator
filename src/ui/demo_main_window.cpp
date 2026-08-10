@@ -13,6 +13,7 @@
 #include "demo_main_window.hpp"
 #include "control_panel.hpp"
 #include "dashboard.hpp"
+#include "demo_app_context.hpp"
 #include "schedule_editor.hpp"
 
 #include <QSettings>
@@ -35,6 +36,7 @@ DemoMainWindow::DemoMainWindow(QWidget *parent)
     , m_dashboard(nullptr)
     , m_schedule(nullptr)
     , m_control(nullptr)
+    , m_context(nullptr)
 {
     setWindowTitle(QStringLiteral("PatchOrchestrator — Demo Hub"));
     resize(900, 640);
@@ -58,6 +60,13 @@ void DemoMainWindow::buildUi()
     m_dashboard = new DashboardWindow(this);
     m_schedule = new ScheduleEditorWindow(this);
     m_control = new ControlPanelWindow(this);
+
+    // Sprint 3 (A3): create the single shared app context and bind it to all
+    // three panels so they read/write the same state and react to changes.
+    m_context = new DemoAppContext(this);
+    m_dashboard->setContext(m_context);
+    m_schedule->setContext(m_context);
+    m_control->setContext(m_context);
 
     m_tabs->addTab(m_dashboard, QStringLiteral("Dashboard"));
     m_tabs->addTab(m_schedule, QStringLiteral("Schedule Editor"));

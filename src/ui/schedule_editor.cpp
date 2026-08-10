@@ -5,6 +5,7 @@
 // the PATCHORCH_API_URL env var (default http://localhost:5000).
 
 #include "schedule_editor.hpp"
+#include "demo_app_context.hpp"
 #include "log.hpp"
 
 #include <QGroupBox>
@@ -60,6 +61,7 @@ ScheduleEditorWindow::ScheduleEditorWindow(QWidget *parent)
     , m_createButton(nullptr)
     , m_result(nullptr)
     , m_baseUrl(envOr("PATCHORCH_API_URL", QStringLiteral("http://localhost:5000")))
+    , m_context(nullptr)
 {
     setWindowTitle(QStringLiteral("PatchOrchestrator — Schedule Editor"));
     resize(680, 560);
@@ -138,6 +140,29 @@ void ScheduleEditorWindow::buildUi()
             &ScheduleEditorWindow::onRemoveStage);
     connect(m_createButton, &QPushButton::clicked, this,
             &ScheduleEditorWindow::onCreateSchedule);
+}
+
+void ScheduleEditorWindow::setContext(DemoAppContext *context)
+{
+    m_context = context;
+    if (m_context == nullptr)
+        return;
+
+    // Adopt the shared schedule id and API base URL.
+    m_baseUrl = m_context->apiBaseUrl();
+    m_scheduleId->setText(m_context->scheduleId());
+    setStatusMessage(QStringLiteral("API base URL: %1").arg(m_baseUrl));
+
+    // Propagate shared-state changes into this panel.
+    connect(m_context, &DemoAppContext::apiBaseUrlChanged, this,
+            [this](const QString &url) { m_baseUrl = url; });
+    connect(m_context, &DemoAppContext::scheduleIdChanged, this,
+            [this](const QString &id) { m_scheduleId->setText(id); });
+
+    // Write local edits back into the shared context (change-only setters make
+    // the echo from scheduleIdChanged a no-op, so there is no feedback loop).
+    connect(m_scheduleId, &QLineEdit::textChanged, this,
+            [this](const QString &text) { m_context->setScheduleId(text.trimmed()); });
 }
 
 void ScheduleEditorWindow::onAddStage()

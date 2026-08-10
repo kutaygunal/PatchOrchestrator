@@ -5,6 +5,7 @@
 // configurable via the PATCHORCH_API_URL and PATCHORCH_SCHEDULE_ID env vars.
 
 #include "dashboard.hpp"
+#include "demo_app_context.hpp"
 #include "log.hpp"
 
 #include <QCloseEvent>
@@ -51,6 +52,7 @@ DashboardWindow::DashboardWindow(QWidget *parent)
     , m_baseUrl(envOr("PATCHORCH_API_URL", QStringLiteral("http://localhost:5000")))
     , m_scheduleId(envOr("PATCHORCH_SCHEDULE_ID", QStringLiteral("sch-1")))
     , m_scheduleReady(false)
+    , m_context(nullptr)
 {
     setWindowTitle(QStringLiteral("PatchOrchestrator — Dashboard"));
     resize(720, 420);
@@ -61,6 +63,24 @@ DashboardWindow::DashboardWindow(QWidget *parent)
     m_timer.start(kDefaultPollIntervalMs);
 
     ensureSchedule();
+}
+
+void DashboardWindow::setContext(DemoAppContext *context)
+{
+    m_context = context;
+    if (m_context == nullptr)
+        return;
+
+    // Adopt the shared schedule id and API base URL.
+    m_baseUrl = m_context->apiBaseUrl();
+    m_scheduleId = m_context->scheduleId();
+    statusBar()->showMessage(QStringLiteral("Connecting to %1 ...").arg(m_baseUrl));
+
+    // Propagate shared-state changes into this panel.
+    connect(m_context, &DemoAppContext::apiBaseUrlChanged, this,
+            [this](const QString &url) { m_baseUrl = url; });
+    connect(m_context, &DemoAppContext::scheduleIdChanged, this,
+            [this](const QString &id) { m_scheduleId = id; });
 }
 
 void DashboardWindow::setPollIntervalMs(int ms)
@@ -195,6 +215,8 @@ void DashboardWindow::onStatusReply(QNetworkReply *reply)
     const QJsonObject root = doc.object();
     const QString status =
         root.value(QStringLiteral("status")).toString(QStringLiteral("unknown"));
+    if (m_context != nullptr)
+        m_context->setRolloutState(status);
     PATCHORCH_LOG_DEBUG(QStringLiteral("Schedule %1 status: %2").arg(m_scheduleId, status));
     setStatusMessage(QStringLiteral("Schedule %1 — status: %2").arg(m_scheduleId, status));
 }

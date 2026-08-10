@@ -17,6 +17,7 @@ class QLabel;
 class QLineEdit;
 class QNetworkReply;
 class QPushButton;
+class DemoAppContext;
 
 class ControlPanelWindow : public QMainWindow
 {
@@ -24,6 +25,17 @@ class ControlPanelWindow : public QMainWindow
 
 public:
     explicit ControlPanelWindow(QWidget *parent = nullptr);
+
+    // Sprint 3 (A3): bind this panel to the shared app context. The panel
+    // reads/writes schedule id, API base URL, and rollout state through the
+    // context and reacts to its change signals. Passing nullptr (the default)
+    // keeps the standalone behaviour with the panel's own local state.
+    void setContext(DemoAppContext *context);
+    DemoAppContext *context() const { return m_context; }
+
+    // Test/automation hook: set the schedule-id field text, which propagates
+    // to the shared context (if bound).
+    void setScheduleIdText(const QString &id);
 
 private slots:
     void onSchedule();
@@ -50,6 +62,7 @@ private:
 
     QNetworkAccessManager m_net;
     QString m_baseUrl;
+    DemoAppContext *m_context;
 };
 
 #endif // PATCHORCHESTRATOR_UI_CONTROL_PANEL_HPP

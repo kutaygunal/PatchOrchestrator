@@ -14,6 +14,7 @@ class QCloseEvent;
 class QJsonArray;
 class QNetworkReply;
 class QTableWidget;
+class DemoAppContext;
 
 class DashboardWindow : public QMainWindow
 {
@@ -21,6 +22,12 @@ class DashboardWindow : public QMainWindow
 
 public:
     explicit DashboardWindow(QWidget *parent = nullptr);
+
+    // Sprint 3 (A3): bind this panel to the shared app context. The dashboard
+    // reads the schedule id and API base URL from the context and publishes
+    // the observed rollout state back to it.
+    void setContext(DemoAppContext *context);
+    DemoAppContext *context() const { return m_context; }
 
     // Polling / refresh control.
     void setPollIntervalMs(int ms);
@@ -49,6 +56,7 @@ private:
     QString m_baseUrl;
     QString m_scheduleId;
     bool m_scheduleReady;
+    DemoAppContext *m_context;
 };
 
 #endif // PATCHORCHESTRATOR_UI_DASHBOARD_HPP
