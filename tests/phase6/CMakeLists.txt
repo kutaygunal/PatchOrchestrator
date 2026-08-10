@@ -101,4 +101,33 @@ if(Qt6_FOUND)
              COMMAND a3_context_tests t3_sharedContext)
     set_tests_properties(a3_state_setget a3_signals a3_shared_context
         PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+    # --- Sprint 4 (A4) Demo Mode engine tests (Qt Test) ---------------------
+    # Builds DemoModeController plus DemoAppContext and runs the step
+    # sequencing, pause/stop, narration, and auto-advance tests offscreen.
+    add_executable(a4_demo_mode_tests
+        a4_demo_mode_tests.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_mode_controller.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
+    )
+    target_include_directories(a4_demo_mode_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
+    target_link_libraries(a4_demo_mode_tests PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
+    target_compile_features(a4_demo_mode_tests PRIVATE cxx_std_17)
+
+    if(MSVC)
+        target_compile_options(a4_demo_mode_tests PRIVATE /W4)
+    else()
+        target_compile_options(a4_demo_mode_tests PRIVATE -Wall -Wextra)
+    endif()
+
+    add_test(NAME a4_sequencing
+             COMMAND a4_demo_mode_tests t1_stepSequencing)
+    add_test(NAME a4_pause_stop
+             COMMAND a4_demo_mode_tests t2_pauseAndStop)
+    add_test(NAME a4_narration
+             COMMAND a4_demo_mode_tests t3_narrationUpdates)
+    add_test(NAME a4_auto_advance
+             COMMAND a4_demo_mode_tests t4_autoAdvance)
+    set_tests_properties(a4_sequencing a4_pause_stop a4_narration a4_auto_advance
+        PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 endif()
