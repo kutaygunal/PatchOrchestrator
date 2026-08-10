@@ -20,6 +20,14 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
 endif()
 
+# --- Testing (Phase 6) -------------------------------------------------------
+# Standard CMake option. When ON, the C++ core unit tests (GoogleTest) are
+# built and registered with CTest. When OFF, the phase-1 build is unaffected.
+include(CTest)
+if(BUILD_TESTING)
+    add_subdirectory(tests/phase6)
+endif()
+
 # --- Qt discovery hint -------------------------------------------------------
 # Make Qt6 discoverable for a plain `cmake -S . -B build` invocation (as used
 # by the Phase 1 verification script and CI) without requiring the caller to
