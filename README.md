@@ -24,6 +24,7 @@ endpoints with their patch state and progress, polled live from the .NET API.*
   - [.NET REST API](#net-rest-api)
   - [Python simulation engine](#python-simulation-engine)
 - [Testing](#testing)
+- [Packaging & release](#packaging--release)
 - [NinjaOne career relevance](#ninjaone-career-relevance)
 
 ---
@@ -216,6 +217,39 @@ cmd /c "call \"C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxili
 CI runs the full matrix on GitHub Actions (`.github/workflows/ci.yml`): it installs Qt
 6.8.2 (win64_msvc2022_64), configures with `BUILD_TESTING=ON`, and runs pytest, ctest, and the
 Phase 11 end-to-end suite, then uploads the built binaries as an artifact.
+
+---
+
+## Packaging & release
+
+The root `CMakeLists.txt` includes a **CPack** target so the Qt applications can be packaged
+into a redistributable installer. The packaging step invokes `windeployqt` (via
+`cmake/bundle_qt.cmake`) to bundle the Qt runtime DLLs next to each installed executable
+**before** `cpack` packages the tree, so the resulting archive runs on a machine without a
+dev Qt install.
+
+Build and package:
+
+```bash
+cmake -S . -B build.p14 -DCMAKE_BUILD_TYPE=Release
+cmake --build build.p14 --config Release
+cpack -B build.p14/package -C Release
+```
+
+The installer archive is produced under `build.p14/package/`. See `docs/release-notes.md` for
+the release notes (current release: **v0.1.0**).
+
+### Structured logging
+
+All three layers write structured `[ISO-8601 timestamp] LEVEL message` logs for observability
+and consistent error handling:
+
+- **C++/Qt GUIs** log API request outcomes and errors via `src/ui/log.hpp`, and stop the
+  dashboard's poll timer on window close for graceful shutdown.
+- **.NET API** logs every request and the Python bridge call through Microsoft.Extensions
+  Logging.
+- **Python bridge** logs to stderr (keeping stdout a clean JSON contract) and returns clear
+  `{"error": ...}` messages with non-zero exit codes on failure.
 
 ---
 

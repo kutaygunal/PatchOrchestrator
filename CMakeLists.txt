@@ -56,3 +56,25 @@ add_subdirectory(python)
 # The .NET API is built with `dotnet build`; CMake only registers a
 # placeholder custom target. Phase 5 replaces this with a real build step.
 add_subdirectory(dotnet)
+
+# --- Packaging / installer (Phase 14) -----------------------------------------
+# Bundle the Qt runtime DLLs next to the installed executables with
+# windeployqt (see cmake/bundle_qt.cmake) BEFORE cpack packages the tree.
+install(SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/cmake/bundle_qt.cmake")
+
+# CPack configuration for a redistributable installer of the Qt apps.
+# NOTE: set the CPACK_* variables BEFORE include(CPack) so they are captured
+# into the generated CPackConfig.cmake.
+set(CPACK_PACKAGE_NAME "PatchOrchestrator")
+set(CPACK_PACKAGE_VERSION "0.1.0")
+set(CPACK_PACKAGE_VENDOR "PatchOrchestrator")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY
+    "Qt control plane for scheduling, pausing, and rolling back fleet-wide software patches")
+set(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/")
+set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}")
+# Redistributable ZIP (runs anywhere after unzip; the Qt runtime is bundled by
+# the windeployqt install step above).
+set(CPACK_GENERATOR "ZIP")
+set(CPACK_STRIP_FILES TRUE)
+
+include(CPack)

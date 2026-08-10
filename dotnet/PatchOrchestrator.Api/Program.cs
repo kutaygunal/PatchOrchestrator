@@ -12,6 +12,10 @@ builder.Services.AddSingleton<IEngineBridge, EngineBridge>();
 
 var app = builder.Build();
 
+// Structured logging for each request (timestamp + level + message) via the
+// Microsoft.Extensions.Logging pipeline already wired by the web host.
+var logger = app.Services.GetRequiredService<ILogger<Program>>();
+
 // Serve the OpenAPI document at /openapi/v1.json and Swagger UI at /swagger.
 app.MapOpenApi();
 app.UseSwaggerUI(options =>
@@ -23,15 +27,23 @@ app.UseSwaggerUI(options =>
 var schedules = new ConcurrentDictionary<string, Schedule>();
 
 // --- Health ---
-app.MapGet("/api/health", () => Results.Ok(new { status = "ok" }));
+app.MapGet("/api/health", () =>
+{
+    logger.LogInformation("Health check requested");
+    return Results.Ok(new { status = "ok" });
+});
 
 // --- Create schedule ---
 app.MapPost("/api/schedules", (CreateScheduleRequest request) =>
 {
     if (string.IsNullOrWhiteSpace(request.Id))
     {
+        logger.LogWarning("Rejected schedule create with missing id");
         return Results.BadRequest(new { error = "id is required" });
     }
+
+    logger.LogInformation("Creating schedule {Id} (package {Package}, group {GroupId})",
+        request.Id, request.Package, request.GroupId);
 
     var schedule = new Schedule
     {
@@ -55,19 +67,32 @@ app.MapPost("/api/schedules/{id}/simulate", (string id, SimulateRequest request,
 {
     if (!schedules.ContainsKey(id))
     {
+        logger.LogWarning("Simulate requested for unknown schedule {Id}", id);
         return Results.NotFound(new { error = $"schedule '{id}' not found" });
     }
+
+    logger.LogInformation(
+        "Simulating schedule {Id} with {Count} endpoint(s), seed {Seed}",
+        id, request.Endpoints.Count, request.Seed);
 
     var engineRequest = new EngineRequest(
         request.Endpoints.Select(e => new EngineEndpointRequest(e.Id, e.FailureRate)).ToList(),
         request.Seed);
 
-    var result = bridge.Run(engineRequest);
-
-    return Results.Ok(new
+    try
     {
-        endpoints = result.Endpoints.Select(e => new { e.Id, e.State, e.Progress }),
-    });
+        var result = bridge.Run(engineRequest);
+        logger.LogInformation("Simulation for schedule {Id} completed", id);
+        return Results.Ok(new
+        {
+            endpoints = result.Endpoints.Select(e => new { e.Id, e.State, e.Progress }),
+        });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Simulation for schedule {Id} failed", id);
+        return Results.Problem("Simulation engine failed", statusCode: 500);
+    }
 });
 
 // --- Status query ---
@@ -75,8 +100,10 @@ app.MapGet("/api/schedules/{id}/status", (string id) =>
 {
     if (!schedules.TryGetValue(id, out var schedule))
     {
+        logger.LogWarning("Status requested for unknown schedule {Id}", id);
         return Results.NotFound(new { error = $"schedule '{id}' not found" });
     }
+    logger.LogInformation("Status requested for schedule {Id} ({Status})", id, schedule.Status);
     return Results.Ok(new { id = schedule.Id, status = schedule.Status });
 });
 
@@ -86,8 +113,12 @@ IResult ApplyTransition(string id, string newStatus)
 {
     if (!schedules.TryGetValue(id, out var schedule))
     {
+        logger.LogWarning("Transition to {NewStatus} requested for unknown schedule {Id}",
+            newStatus, id);
         return Results.NotFound(new { error = $"schedule '{id}' not found" });
     }
+    logger.LogInformation("Schedule {Id}: {OldStatus} -> {NewStatus}",
+        id, schedule.Status, newStatus);
     schedule.Status = newStatus;
     return Results.Ok(new { id = schedule.Id, status = schedule.Status });
 }

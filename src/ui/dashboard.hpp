@@ -10,6 +10,7 @@
 #include <QNetworkAccessManager>
 #include <QTimer>
 
+class QCloseEvent;
 class QJsonArray;
 class QNetworkReply;
 class QTableWidget;
@@ -24,6 +25,9 @@ public:
     // Polling / refresh control.
     void setPollIntervalMs(int ms);
     void refreshNow();
+
+protected:
+    void closeEvent(QCloseEvent *event) override;
 
 private slots:
     void onPollTick();

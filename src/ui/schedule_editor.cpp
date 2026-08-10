@@ -5,6 +5,7 @@
 // the PATCHORCH_API_URL env var (default http://localhost:5000).
 
 #include "schedule_editor.hpp"
+#include "log.hpp"
 
 #include <QGroupBox>
 #include <QHBoxLayout>
@@ -224,11 +225,13 @@ void ScheduleEditorWindow::onCreateReply(QNetworkReply *reply)
         const QString message = QStringLiteral("Error (%1): %2")
                                     .arg(reply->error())
                                     .arg(reply->errorString());
+        PATCHORCH_LOG_ERROR(QStringLiteral("Create schedule failed: %1").arg(message));
         m_result->setPlainText(message);
         setStatusMessage(QStringLiteral("Create schedule failed."));
         return;
     }
 
+    PATCHORCH_LOG_INFO(QStringLiteral("Schedule created successfully."));
     m_result->setPlainText(QString::fromUtf8(payload));
     setStatusMessage(QStringLiteral("Schedule created successfully."));
 }

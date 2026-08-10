@@ -8,13 +8,21 @@ Importable as ``import engine`` (the test harness sets ``PYTHONPATH`` to the
 always produces the same result.
 """
 
+import datetime
 import random
+import sys
 
 # Module-level constants (API contract).
 STATES = ("pending", "running", "paused", "failed", "rolled_back", "succeeded")
 
 # Terminal states: the rollout stops advancing an endpoint once it reaches one.
 _TERMINAL = ("succeeded", "failed", "rolled_back")
+
+
+def _log(level: str, message: str) -> None:
+    """Structured [ISO-8601] LEVEL message to stderr (never stdout)."""
+    ts = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    print(f"{ts} [{level}] {message}", file=sys.stderr, flush=True)
 
 
 class Endpoint:
@@ -47,18 +55,21 @@ class Rollout:
                 ep.state = "running"
         self.running = True
         self.paused = False
+        _log("INFO", f"rollout started ({len(self.endpoints)} endpoint(s))")
 
     def pause(self):
         """running -> paused (progress frozen)."""
         if self.running and not self.paused:
             self.paused = True
             self.running = False
+            _log("INFO", "rollout paused")
 
     def resume(self):
         """paused -> running."""
         if self.paused:
             self.paused = False
             self.running = True
+            _log("INFO", "rollout resumed")
 
     def rollback(self):
         """running/paused/failed -> rolled_back.  Succeeded stay succeeded."""
@@ -68,6 +79,7 @@ class Rollout:
         self.rolled_back = True
         self.running = False
         self.paused = False
+        _log("WARN", "rollout rolled back")
 
     def tick(self, steps=1):
         """Advance running endpoints deterministically.
@@ -98,4 +110,5 @@ class Rollout:
             self.start()
         while not all(ep.state in _TERMINAL for ep in self.endpoints):
             self.tick(1)
+        _log("INFO", "rollout simulation complete")
         return self

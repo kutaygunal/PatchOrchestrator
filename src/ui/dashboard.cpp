@@ -5,7 +5,9 @@
 // configurable via the PATCHORCH_API_URL and PATCHORCH_SCHEDULE_ID env vars.
 
 #include "dashboard.hpp"
+#include "log.hpp"
 
+#include <QCloseEvent>
 #include <QHeaderView>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -66,6 +68,15 @@ void DashboardWindow::setPollIntervalMs(int ms)
     m_timer.setInterval(ms);
 }
 
+// Graceful shutdown: stop the polling timer before the window is destroyed so
+// no further network requests are issued after close.
+void DashboardWindow::closeEvent(QCloseEvent *event)
+{
+    PATCHORCH_LOG_INFO(QStringLiteral("Dashboard shutting down; stopping poll timer."));
+    m_timer.stop();
+    event->accept();
+}
+
 void DashboardWindow::refreshNow()
 {
     onPollTick();
@@ -106,11 +117,14 @@ void DashboardWindow::onCreateReply(QNetworkReply *reply)
 {
     reply->deleteLater();
     if (reply->error() != QNetworkReply::NoError) {
+        PATCHORCH_LOG_ERROR(QStringLiteral("Failed to create schedule: %1")
+                                .arg(reply->errorString()));
         setStatusMessage(QStringLiteral("Failed to create schedule: %1")
                              .arg(reply->errorString()));
         return;
     }
     m_scheduleReady = true;
+    PATCHORCH_LOG_INFO(QStringLiteral("Schedule %1 ready").arg(m_scheduleId));
     setStatusMessage(QStringLiteral("Schedule %1 ready").arg(m_scheduleId));
     pollSimulate();
     pollStatus();
@@ -146,6 +160,7 @@ void DashboardWindow::onSimulateReply(QNetworkReply *reply)
 {
     reply->deleteLater();
     if (reply->error() != QNetworkReply::NoError) {
+        PATCHORCH_LOG_ERROR(QStringLiteral("Simulate failed: %1").arg(reply->errorString()));
         setStatusMessage(QStringLiteral("Simulate failed: %1").arg(reply->errorString()));
         return;
     }
@@ -153,6 +168,7 @@ void DashboardWindow::onSimulateReply(QNetworkReply *reply)
     const QJsonDocument doc = QJsonDocument::fromJson(reply->readAll());
     const QJsonObject root = doc.object();
     const QJsonArray endpoints = root.value(QStringLiteral("endpoints")).toArray();
+    PATCHORCH_LOG_DEBUG(QStringLiteral("Simulate returned %1 endpoints").arg(endpoints.size()));
     populateTable(endpoints);
 }
 
@@ -171,6 +187,7 @@ void DashboardWindow::onStatusReply(QNetworkReply *reply)
 {
     reply->deleteLater();
     if (reply->error() != QNetworkReply::NoError) {
+        PATCHORCH_LOG_WARN(QStringLiteral("Status poll failed: %1").arg(reply->errorString()));
         return;
     }
 
@@ -178,6 +195,7 @@ void DashboardWindow::onStatusReply(QNetworkReply *reply)
     const QJsonObject root = doc.object();
     const QString status =
         root.value(QStringLiteral("status")).toString(QStringLiteral("unknown"));
+    PATCHORCH_LOG_DEBUG(QStringLiteral("Schedule %1 status: %2").arg(m_scheduleId, status));
     setStatusMessage(QStringLiteral("Schedule %1 — status: %2").arg(m_scheduleId, status));
 }
 

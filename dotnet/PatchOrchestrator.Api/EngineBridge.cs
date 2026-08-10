@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 
 namespace PatchOrchestrator.Api;
 
@@ -31,15 +32,23 @@ public class EngineBridge : IEngineBridge
 {
     private readonly string _pythonDir;
     private readonly string _pythonExe;
+    private readonly ILogger<EngineBridge>? _logger;
 
-    public EngineBridge()
+    // The logger is optional so the parameterless constructor remains usable
+    // in tests; DI supplies the real logger at runtime.
+    public EngineBridge(ILogger<EngineBridge>? logger = null)
     {
         _pythonDir = ResolvePythonDir();
         _pythonExe = "python"; // 3.11, NOT python3 (Windows Store alias).
+        _logger = logger;
     }
 
     public EngineResult Run(EngineRequest request)
     {
+        _logger?.LogInformation(
+            "EngineBridge: driving Python engine with {Count} endpoint(s), seed {Seed}",
+            request.Endpoints.Count, request.Seed);
+
         var requestJson = JsonSerializer.Serialize(new
         {
             endpoints = request.Endpoints.Select(e => new { id = e.Id, failure_rate = e.FailureRate }),
@@ -70,6 +79,9 @@ public class EngineBridge : IEngineBridge
 
         if (process.ExitCode != 0)
         {
+            _logger?.LogError(
+                "EngineBridge: Python bridge failed (exit {ExitCode}): {Stderr}",
+                process.ExitCode, stderr.Trim());
             throw new InvalidOperationException(
                 $"Python bridge failed (exit {process.ExitCode}): {stderr}");
         }
@@ -82,6 +94,9 @@ public class EngineBridge : IEngineBridge
         var result = JsonSerializer.Deserialize<EngineResult>(stdout, options)
             ?? throw new InvalidOperationException("Python bridge returned an empty result.");
 
+        _logger?.LogInformation(
+            "EngineBridge: Python engine returned {Count} endpoint result(s), rolled_back={RolledBack}",
+            result.Endpoints.Count, result.RolledBack);
         return result;
     }
 

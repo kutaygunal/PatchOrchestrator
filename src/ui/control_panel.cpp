@@ -8,6 +8,7 @@
 // PATCHORCH_API_URL env var (default http://localhost:5000).
 
 #include "control_panel.hpp"
+#include "log.hpp"
 
 #include <QGroupBox>
 #include <QHBoxLayout>
@@ -211,6 +212,7 @@ void ControlPanelWindow::onRefreshStatus()
 void ControlPanelWindow::sendAction(const QString &path, const QString &verb,
                                     const QJsonObject &body)
 {
+    PATCHORCH_LOG_INFO(QStringLiteral("Sending %1 %2 to %3").arg(verb, path, m_baseUrl));
     QNetworkRequest request(QUrl(m_baseUrl + path));
     request.setHeader(QNetworkRequest::ContentTypeHeader, QStringLiteral("application/json"));
 
@@ -248,9 +250,12 @@ void ControlPanelWindow::onReply(QNetworkReply *reply)
     const QString url = reply->url().toString();
 
     if (reply->error() != QNetworkReply::NoError) {
+        PATCHORCH_LOG_ERROR(QStringLiteral("API request failed (%1): %2")
+                                .arg(reply->errorString(), url));
         setStatusMessage(QStringLiteral("Error (%1): %2").arg(reply->error()).arg(reply->errorString()));
         return;
     }
+    PATCHORCH_LOG_INFO(QStringLiteral("API request succeeded for %1").arg(url));
 
     // If this was a status query, surface the status field prominently.
     if (url.endsWith(QStringLiteral("/status"))) {
