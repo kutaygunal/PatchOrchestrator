@@ -1,10 +1,14 @@
 using System.Collections.Concurrent;
 using Microsoft.AspNetCore.Mvc;
+using PatchOrchestrator.Api;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Enable OpenAPI document generation (documented contract).
 builder.Services.AddOpenApi();
+
+// Register the API <-> engine bridge (drives the Python simulation engine).
+builder.Services.AddSingleton<IEngineBridge, EngineBridge>();
 
 var app = builder.Build();
 
@@ -46,6 +50,26 @@ app.MapPost("/api/schedules/{id}/pause", (string id) => ApplyTransition(id, "pau
 app.MapPost("/api/schedules/{id}/resume", (string id) => ApplyTransition(id, "running"));
 app.MapPost("/api/schedules/{id}/rollback", (string id) => ApplyTransition(id, "rolled-back"));
 
+// --- Simulate (drive the Python engine through the bridge) ---
+app.MapPost("/api/schedules/{id}/simulate", (string id, SimulateRequest request, IEngineBridge bridge) =>
+{
+    if (!schedules.ContainsKey(id))
+    {
+        return Results.NotFound(new { error = $"schedule '{id}' not found" });
+    }
+
+    var engineRequest = new EngineRequest(
+        request.Endpoints.Select(e => new EngineEndpointRequest(e.Id, e.FailureRate)).ToList(),
+        request.Seed);
+
+    var result = bridge.Run(engineRequest);
+
+    return Results.Ok(new
+    {
+        endpoints = result.Endpoints.Select(e => new { e.Id, e.State, e.Progress }),
+    });
+});
+
 // --- Status query ---
 app.MapGet("/api/schedules/{id}/status", (string id) =>
 {
@@ -69,6 +93,9 @@ IResult ApplyTransition(string id, string newStatus)
 }
 
 public record CreateScheduleRequest(string Id, string? Package, string? GroupId);
+
+public record SimulateEndpointRequest(string Id, double FailureRate);
+public record SimulateRequest(int Seed, IReadOnlyList<SimulateEndpointRequest> Endpoints);
 
 public class Schedule
 {
