@@ -130,4 +130,32 @@ if(Qt6_FOUND)
              COMMAND a4_demo_mode_tests t4_autoAdvance)
     set_tests_properties(a4_sequencing a4_pause_stop a4_narration a4_auto_advance
         PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+    # --- Sprint 5 (A5) demo script parser tests (Qt Test) -------------------
+    # Builds the self-contained JSON demo script parser and runs the valid-parse,
+    # step-type, invalid-reject, and schema-validation tests offscreen.
+    add_executable(a5_script_parser_tests
+        a5_script_parser_tests.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_script_parser.cpp
+    )
+    target_include_directories(a5_script_parser_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
+    target_link_libraries(a5_script_parser_tests PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
+    target_compile_features(a5_script_parser_tests PRIVATE cxx_std_17)
+
+    if(MSVC)
+        target_compile_options(a5_script_parser_tests PRIVATE /W4)
+    else()
+        target_compile_options(a5_script_parser_tests PRIVATE -Wall -Wextra)
+    endif()
+
+    add_test(NAME a5_valid_parse
+             COMMAND a5_script_parser_tests t1_validParse)
+    add_test(NAME a5_step_types
+             COMMAND a5_script_parser_tests t2_stepTypes)
+    add_test(NAME a5_invalid_reject
+             COMMAND a5_script_parser_tests t3_invalidReject)
+    add_test(NAME a5_schema
+             COMMAND a5_script_parser_tests t4_schemaValidation)
+    set_tests_properties(a5_valid_parse a5_step_types a5_invalid_reject a5_schema
+        PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 endif()
