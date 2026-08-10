@@ -26,3 +26,80 @@ endif()
 
 # Install the executable so the build produces a well-known artifact path.
 install(TARGETS patchorchestrator RUNTIME DESTINATION bin)
+
+# --- Domain model library (Phase 2) -------------------------------------------
+# Plain C++ domain model for the patch control plane. No GUI, no I/O, no Qt
+# dependencies. Compiled with warnings-as-errors.
+add_library(poc_domain STATIC domain/domain.cpp)
+target_include_directories(poc_domain PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_compile_features(poc_domain PUBLIC cxx_std_17)
+
+if(MSVC)
+    target_compile_options(poc_domain PRIVATE /W4 /WX)
+else()
+    target_compile_options(poc_domain PRIVATE -Wall -Wextra -Werror)
+endif()
+
+# --- Qt dashboard UI (Phase 8) ------------------------------------------------
+# Read-only dashboard that lists simulated endpoints and their patch status,
+# polling/refreshing against the .NET API boundary (Phase 7).
+find_package(Qt6 6.2 QUIET COMPONENTS Widgets Network)
+
+if(Qt6_FOUND)
+    set(CMAKE_AUTOMOC ON)
+
+    add_executable(patchorchestrator_ui
+        ui/dashboard_main.cpp
+        ui/dashboard.cpp
+    )
+    target_link_libraries(patchorchestrator_ui PRIVATE Qt6::Widgets Qt6::Network)
+    target_compile_features(patchorchestrator_ui PRIVATE cxx_std_17)
+    target_compile_definitions(patchorchestrator_ui PRIVATE PATCHORCHESTRATOR_VERSION="0.1.0")
+
+    install(TARGETS patchorchestrator_ui RUNTIME DESTINATION bin)
+else()
+    message(WARNING "Qt6 Widgets/Network not found — skipping patchorchestrator_ui target.")
+endif()
+
+# --- Schedule-definition UI (Phase 9) ----------------------------------------
+# Forms for group, maintenance-window, and rollout-stage editors wired to the
+# API to create a schedule. Consumes the working .NET API boundary (Phase 7).
+find_package(Qt6 6.2 QUIET COMPONENTS Widgets Network)
+
+if(Qt6_FOUND)
+    set(CMAKE_AUTOMOC ON)
+
+    add_executable(patchorchestrator_schedule_ui
+        ui/schedule_main.cpp
+        ui/schedule_editor.cpp
+    )
+    target_link_libraries(patchorchestrator_schedule_ui PRIVATE Qt6::Widgets Qt6::Network)
+    target_compile_features(patchorchestrator_schedule_ui PRIVATE cxx_std_17)
+    target_compile_definitions(patchorchestrator_schedule_ui PRIVATE PATCHORCHESTRATOR_VERSION="0.1.0")
+
+    install(TARGETS patchorchestrator_schedule_ui RUNTIME DESTINATION bin)
+else()
+    message(WARNING "Qt6 Widgets/Network not found — skipping patchorchestrator_schedule_ui target.")
+endif()
+
+# --- Control-actions UI (Phase 10) -------------------------------------------
+# Schedule / Pause / Resume / Rollback buttons wired to the API endpoints,
+# with confirmation dialogs and result feedback. Consumes the working .NET API
+# boundary (Phase 7).
+find_package(Qt6 6.2 QUIET COMPONENTS Widgets Network)
+
+if(Qt6_FOUND)
+    set(CMAKE_AUTOMOC ON)
+
+    add_executable(patchorchestrator_control_ui
+        ui/control_main.cpp
+        ui/control_panel.cpp
+    )
+    target_link_libraries(patchorchestrator_control_ui PRIVATE Qt6::Widgets Qt6::Network)
+    target_compile_features(patchorchestrator_control_ui PRIVATE cxx_std_17)
+    target_compile_definitions(patchorchestrator_control_ui PRIVATE PATCHORCHESTRATOR_VERSION="0.1.0")
+
+    install(TARGETS patchorchestrator_control_ui RUNTIME DESTINATION bin)
+else()
+    message(WARNING "Qt6 Widgets/Network not found — skipping patchorchestrator_control_ui target.")
+endif()
