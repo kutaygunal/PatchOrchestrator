@@ -5,12 +5,23 @@ on:
     branches: [ main ]
   pull_request:
 
+env:
+  QT_VERSION: '6.8.2'
+  QT_ARCH: 'win64_msvc2022_64'
+  BUILD_TYPE: Release
+
 jobs:
-  build-cpp:
-    name: Configure + build C++/Qt target
+  # ---------------------------------------------------------------------------
+  # Main pipeline: configure + build ALL C++/Qt targets, then run every test
+  # suite (P4 pytest, P6 CTest/gtest, P7 API/bridge, P11 E2E integration) and
+  # deploy Qt DLLs onto each built UI exe before the artifact is uploaded.
+  # ---------------------------------------------------------------------------
+  ci:
+    name: Build + test + artifact
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
@@ -19,11 +30,82 @@ jobs:
           arch: 'win64_msvc2022_64'
           cache: true
 
-      - name: Configure CMake
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          # The REST API + tests target net10.0 (see dotnet/PatchOrchestrator.Api).
+          dotnet-version: '10.0.x'
 
-      - name: Build
+      - name: Configure CMake (all targets, testing ON)
+        timeout-minutes: 10
+        run: cmake -S . -B build -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build all targets
+        timeout-minutes: 30
         run: cmake --build build --config Release
+        # Builds: patchorchestrator, poc_domain, patchorchestrator_ui,
+        #         patchorchestrator_schedule_ui, patchorchestrator_control_ui
 
-      - name: Run placeholder artifact
-        run: build/Release/patchorchestrator.exe
+      # --- P4: Python engine pytest suite -------------------------------------
+      - name: Test P4 (pytest engine)
+        timeout-minutes: 10
+        shell: bash
+        run: bash tests/phase4/run_tests.sh
+
+      # --- P6: C++ CTest/gtest suite -------------------------------------------
+      - name: Test P6 (CTest/gtest)
+        timeout-minutes: 15
+        shell: bash
+        run: bash tests/phase6/run_ctest.sh
+        # Equivalent: ctest --test-dir build -C Release --output-on-failure
+
+      # --- P7: .NET API build + bridge contract --------------------------------
+      - name: Build .NET API (P7)
+        timeout-minutes: 10
+        shell: bash
+        run: |
+          dotnet build dotnet/PatchOrchestrator.Api/PatchOrchestrator.Api.csproj -c Release
+          dotnet test dotnet/PatchOrchestrator.Api.Tests/PatchOrchestrator.Api.Tests.csproj -c Release
+
+      - name: Test P5 (API contract)
+        timeout-minutes: 10
+        shell: bash
+        run: bash tests/phase5/verify_api.sh
+
+      - name: Test P7 (engine bridge)
+        timeout-minutes: 10
+        shell: bash
+        run: bash tests/phase7/verify_bridge.sh
+
+      # --- P11: end-to-end integration suite ------------------------------------
+      - name: Test P11 (E2E integration)
+        timeout-minutes: 15
+        shell: bash
+        run: bash tests/phase11/verify_integration.sh
+
+      # --- Deploy Qt DLLs onto each built UI exe --------------------------------
+      - name: Deploy Qt DLLs (windeployqt)
+        timeout-minutes: 10
+        shell: bash
+        run: |
+          set -e
+          Qt6_DIR="$(grep -E '^Qt6_DIR:PATH=' build/CMakeCache.txt | head -n1 | cut -d= -f2)"
+          QT_ROOT="$(dirname "$(dirname "$(dirname "$Qt6_DIR")")")"
+          QT_BIN="${QT_ROOT}/bin"
+          echo "Qt bin: ${QT_BIN}"
+          for exe in \
+            build/Release/patchorchestrator_ui.exe \
+            build/Release/patchorchestrator_schedule_ui.exe \
+            build/Release/patchorchestrator_control_ui.exe; do
+            if [ -f "$exe" ]; then
+              echo "windeployqt: $exe"
+              "${QT_BIN}/windeployqt.exe" --no-translations --no-system-d3d-compiler "$exe" || echo "windeployqt warnings for $exe"
+            fi
+          done
+
+      - name: Upload built binaries as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: patchorchestrator-windows-${{ env.BUILD_TYPE }}
+          path: build/Release/
+          if-no-files-found: warn
