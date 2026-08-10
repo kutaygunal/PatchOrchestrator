@@ -210,8 +210,10 @@ void DashboardWindow::populateTable(const QJsonArray &endpoints)
 
         auto *idItem = new QTableWidgetItem(id);
         auto *stateItem = new QTableWidgetItem(state);
+        // Engine reports progress as a float in [0.0, 100.0] (already a
+        // percentage). Display it directly; do NOT multiply by 100 again.
         auto *progressItem = new QTableWidgetItem(
-            QStringLiteral("%1%").arg(static_cast<int>(progress * 100.0)));
+            QStringLiteral("%1%").arg(static_cast<int>(progress)));
 
         m_table->setItem(row, 0, idItem);
         m_table->setItem(row, 1, stateItem);

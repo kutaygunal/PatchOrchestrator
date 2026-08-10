@@ -103,3 +103,27 @@ if(Qt6_FOUND)
 else()
     message(WARNING "Qt6 Widgets/Network not found — skipping patchorchestrator_control_ui target.")
 endif()
+
+# --- Unified demo hub (Sprint 1 / A1) --------------------------------------
+# Hosts the dashboard, schedule editor, and control panel as tabs in a single
+# application. Reuses the existing widget classes unchanged.
+find_package(Qt6 6.2 QUIET COMPONENTS Widgets Network)
+
+if(Qt6_FOUND)
+    set(CMAKE_AUTOMOC ON)
+
+    add_executable(patchorchestrator_demo
+        ui/demo_main.cpp
+        ui/demo_main_window.cpp
+        ui/dashboard.cpp
+        ui/schedule_editor.cpp
+        ui/control_panel.cpp
+    )
+    target_link_libraries(patchorchestrator_demo PRIVATE Qt6::Widgets Qt6::Network)
+    target_compile_features(patchorchestrator_demo PRIVATE cxx_std_17)
+    target_compile_definitions(patchorchestrator_demo PRIVATE PATCHORCHESTRATOR_VERSION="0.1.0")
+
+    install(TARGETS patchorchestrator_demo RUNTIME DESTINATION bin)
+else()
+    message(WARNING "Qt6 Widgets/Network not found — skipping patchorchestrator_demo target.")
+endif()
