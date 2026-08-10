@@ -10,6 +10,7 @@
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
+    QApplication::setOrganizationName(QStringLiteral("PatchOrchestrator"));
     QApplication::setApplicationName(QStringLiteral("PatchOrchestrator"));
     QApplication::setApplicationVersion(QStringLiteral("0.1.0"));
 

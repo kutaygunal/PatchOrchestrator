@@ -1,13 +1,18 @@
-// PatchOrchestrator — Sprint 1 (A1) unified demo main window.
+// PatchOrchestrator — Sprint 1/2 (A1/A2) unified demo main window.
 //
 // A QMainWindow that hosts the three existing UI widgets (dashboard, schedule
 // editor, control panel) as tabs in a single application. The existing widget
-// classes are reused as-is; their central widgets are embedded into a
-// QTabWidget so all three panels render inside one window.
+// classes are reused as-is; the panel windows themselves are embedded as tab
+// pages so all three panels render inside one window.
+//
+// Sprint 2 (A2) adds layout-state persistence: the window geometry/state and
+// the tab order are saved to QSettings and restored on the next launch, so
+// the layout survives restarts and the tabs remain reorderable.
 
 #ifndef PATCHORCHESTRATOR_UI_DEMO_MAIN_WINDOW_HPP
 #define PATCHORCHESTRATOR_UI_DEMO_MAIN_WINDOW_HPP
 
+#include <QByteArray>
 #include <QMainWindow>
 
 class QTabWidget;
@@ -28,8 +33,15 @@ public:
     ControlPanelWindow *controlPanel() const { return m_control; }
     QTabWidget *tabWidget() const { return m_tabs; }
 
+    // Layout persistence (Sprint 2 / A2). saveLayout() writes the current
+    // window state and tab order to QSettings and returns the serialized
+    // state; restoreLayout() reads them back and reapplies them.
+    QByteArray saveLayout() const;
+    void restoreLayout();
+
 private:
     void buildUi();
+    void restoreTabOrder(const QStringList &order);
 
     QTabWidget *m_tabs;
     DashboardWindow *m_dashboard;

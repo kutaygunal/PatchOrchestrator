@@ -35,3 +35,38 @@ endif()
 
 include(GoogleTest)
 gtest_discover_tests(poc_domain_tests)
+
+# --- Sprint 2 (A2) tab/dock manager tests (Qt Test) -------------------------
+# Builds the demo hub window plus the three embedded widgets and runs the
+# layout save/restore, embedding, and persistence tests offscreen.
+find_package(Qt6 6.2 QUIET COMPONENTS Widgets Network Test)
+
+if(Qt6_FOUND)
+    set(CMAKE_AUTOMOC ON)
+
+    add_executable(a2_layout_tests
+        a2_layout_tests.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_main_window.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/dashboard.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/schedule_editor.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/control_panel.cpp
+    )
+    target_include_directories(a2_layout_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
+    target_link_libraries(a2_layout_tests PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
+    target_compile_features(a2_layout_tests PRIVATE cxx_std_17)
+
+    if(MSVC)
+        target_compile_options(a2_layout_tests PRIVATE /W4)
+    else()
+        target_compile_options(a2_layout_tests PRIVATE -Wall -Wextra)
+    endif()
+
+    add_test(NAME a2_layout_roundtrip
+             COMMAND a2_layout_tests t1_layoutRoundTrip)
+    add_test(NAME a2_embedding
+             COMMAND a2_layout_tests t2_widgetEmbedding)
+    add_test(NAME a2_persistence
+             COMMAND a2_layout_tests t3_persistenceAcrossRestarts)
+    set_tests_properties(a2_layout_roundtrip a2_embedding a2_persistence
+        PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+endif()
