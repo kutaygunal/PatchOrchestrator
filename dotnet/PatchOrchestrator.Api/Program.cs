@@ -1,4 +1,6 @@
 using System.Collections.Concurrent;
+using System.Text.Json;
+using System.Threading.Channels;
 using Microsoft.AspNetCore.Mvc;
 using PatchOrchestrator.Api;
 
@@ -30,6 +32,12 @@ var schedules = new ConcurrentDictionary<string, Schedule>();
 // owns one long-lived EngineSession so pause/resume/rollback mutate the live
 // engine state in place instead of returning a status string.
 var sessions = new ConcurrentDictionary<string, EngineSession>();
+
+// Per-schedule broadcast channels (Sprint 15 / B5). Each schedule owns an
+// unbounded Channel<EngineResult> that the status/stream endpoint reads from.
+// Every live state mutation (pause/resume/rollback/tick) publishes the new
+// engine result to the channel so connected clients receive live updates.
+var streams = new ConcurrentDictionary<string, Channel<EngineResult>>();
 
 // --- Health ---
 app.MapGet("/api/health", () =>
@@ -63,6 +71,10 @@ app.MapPost("/api/schedules", (CreateScheduleRequest request, IEngineBridge brid
     // Start a live engine session for this schedule so the control endpoints
     // (pause/resume/rollback) can mutate real engine state.
     sessions[request.Id] = new EngineSession(bridge, CreateDefaultRequest());
+
+    // Open a broadcast channel so the status/stream endpoint can deliver live
+    // state changes to connected clients.
+    streams[request.Id] = Channel.CreateUnbounded<EngineResult>();
 
     return Results.Created($"/api/schedules/{request.Id}", schedule);
 });
@@ -121,6 +133,45 @@ app.MapGet("/api/schedules/{id}/status", (string id) =>
     return Results.Ok(new { id = schedule.Id, status = schedule.Status });
 });
 
+// --- Status stream (SSE, Sprint 15 / B5) ---
+// Delivers live state changes to clients as they occur. The stream opens with
+// the current state as a baseline, then emits one SSE event per live mutation
+// (pause/resume/rollback/tick). Returns 404 for an unknown schedule id and
+// handles client disconnect gracefully (the request-aborted token cancels the
+// channel read, which the framework treats as a normal disconnect).
+app.MapGet("/api/schedules/{id}/status/stream", async (string id, HttpResponse response, CancellationToken ct) =>
+{
+    if (!schedules.TryGetValue(id, out _))
+    {
+        logger.LogWarning("Stream requested for unknown schedule {Id}", id);
+        return Results.NotFound(new { error = $"schedule '{id}' not found" });
+    }
+
+    if (!streams.TryGetValue(id, out var channel))
+    {
+        logger.LogWarning("No stream channel for schedule {Id}", id);
+        return Results.NotFound(new { error = $"schedule '{id}' has no stream" });
+    }
+
+    logger.LogInformation("Stream opened for schedule {Id}", id);
+    response.Headers.ContentType = "text/event-stream";
+    response.Headers.CacheControl = "no-cache";
+
+    // Emit the current state immediately so the client has a baseline.
+    if (sessions.TryGetValue(id, out var session))
+    {
+        await WriteStreamEventAsync(response, id, session.State, ct);
+    }
+
+    // Emit one event per live state change until the client disconnects.
+    await foreach (var result in channel.Reader.ReadAllAsync(ct))
+    {
+        await WriteStreamEventAsync(response, id, result, ct);
+    }
+
+    return Results.Empty;
+});
+
 // Dispose all live engine sessions (and their Python subprocesses) on shutdown.
 app.Lifetime.ApplicationStopped.Register(() =>
 {
@@ -154,6 +205,7 @@ IResult ControlSession(string id, Func<EngineSession, EngineResult> action)
     {
         var result = action(session);
         schedule.Status = StatusFromResult(result);
+        PublishState(id, result);
         logger.LogInformation("Schedule {Id} control -> {Status}", id, schedule.Status);
         return Results.Ok(new { id = schedule.Id, status = schedule.Status });
     }
@@ -186,6 +238,7 @@ IResult TickSession(string id, int steps)
     {
         var result = session.Tick(steps);
         schedule.Status = StatusFromResult(result);
+        PublishState(id, result);
         logger.LogInformation("Schedule {Id} tick x{Steps} -> {Status}", id, steps, schedule.Status);
         return Results.Ok(new
         {
@@ -199,6 +252,31 @@ IResult TickSession(string id, int steps)
         logger.LogError(ex, "Tick for schedule {Id} failed", id);
         return Results.Problem("Engine tick failed", statusCode: 500);
     }
+}
+
+// Publish a live engine result to a schedule's broadcast channel so connected
+// status/stream clients receive the state change.
+void PublishState(string id, EngineResult result)
+{
+    if (streams.TryGetValue(id, out var channel))
+    {
+        channel.Writer.TryWrite(result);
+    }
+}
+
+// Write one SSE event carrying the schedule id, derived status, and per-endpoint
+// state/progress to the response body.
+static async Task WriteStreamEventAsync(HttpResponse response, string id, EngineResult result, CancellationToken ct)
+{
+    var payload = new
+    {
+        id,
+        status = StatusFromResult(result),
+        endpoints = result.Endpoints.Select(e => new { e.Id, e.State, e.Progress }),
+    };
+    var json = JsonSerializer.Serialize(payload);
+    await response.WriteAsync($"data: {json}\n\n", ct);
+    await response.Body.FlushAsync(ct);
 }
 
 // Derive a single schedule status string from the live engine result.
