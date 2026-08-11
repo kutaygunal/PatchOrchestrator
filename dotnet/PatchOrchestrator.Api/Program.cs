@@ -72,6 +72,10 @@ app.MapPost("/api/schedules/{id}/pause", (string id) => ControlSession(id, s => 
 app.MapPost("/api/schedules/{id}/resume", (string id) => ControlSession(id, s => s.Resume()));
 app.MapPost("/api/schedules/{id}/rollback", (string id) => ControlSession(id, s => s.Rollback()));
 
+// --- Tick (advance the live EngineSession deterministically) ---
+app.MapPost("/api/schedules/{id}/tick", (string id, TickRequest? request) =>
+    TickSession(id, request?.Steps ?? 1));
+
 // --- Simulate (drive the Python engine through the bridge) ---
 app.MapPost("/api/schedules/{id}/simulate", (string id, SimulateRequest request, IEngineBridge bridge) =>
 {
@@ -160,6 +164,43 @@ IResult ControlSession(string id, Func<EngineSession, EngineResult> action)
     }
 }
 
+// Invoke a live EngineSession tick for a schedule and reflect the new engine
+// state back onto the schedule record. Returns 200 with the updated state
+// (including per-endpoint progress), 404 for an unknown schedule id, and 500
+// if the engine fails. The tick is deterministic (seeded via the session).
+IResult TickSession(string id, int steps)
+{
+    if (!schedules.TryGetValue(id, out var schedule))
+    {
+        logger.LogWarning("Tick requested for unknown schedule {Id}", id);
+        return Results.NotFound(new { error = $"schedule '{id}' not found" });
+    }
+
+    if (!sessions.TryGetValue(id, out var session))
+    {
+        logger.LogWarning("No live session for schedule {Id}", id);
+        return Results.NotFound(new { error = $"schedule '{id}' has no live session" });
+    }
+
+    try
+    {
+        var result = session.Tick(steps);
+        schedule.Status = StatusFromResult(result);
+        logger.LogInformation("Schedule {Id} tick x{Steps} -> {Status}", id, steps, schedule.Status);
+        return Results.Ok(new
+        {
+            id = schedule.Id,
+            status = schedule.Status,
+            endpoints = result.Endpoints.Select(e => new { e.Id, e.State, e.Progress }),
+        });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Tick for schedule {Id} failed", id);
+        return Results.Problem("Engine tick failed", statusCode: 500);
+    }
+}
+
 // Derive a single schedule status string from the live engine result.
 static string StatusFromResult(EngineResult result)
 {
@@ -190,6 +231,9 @@ public record CreateScheduleRequest(string Id, string? Package, string? GroupId)
 
 public record SimulateEndpointRequest(string Id, double FailureRate);
 public record SimulateRequest(int Seed, IReadOnlyList<SimulateEndpointRequest> Endpoints);
+
+/// <summary>Optional body for the tick endpoint; Steps defaults to 1.</summary>
+public record TickRequest(int Steps);
 
 public class Schedule
 {

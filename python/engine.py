@@ -96,18 +96,21 @@ class Rollout:
         """
         if self.paused:
             return self
-        for ep in self.endpoints:
-            if ep.state != "running":
-                continue
-            # One random draw per running endpoint per tick.
-            if self._rng.random() < ep.failure_rate:
-                ep.state = "failed"
-                ep.failed = True
-                continue
-            ep.progress = min(100.0, ep.progress + 1.0 * steps)
-            if ep.progress >= 100.0:
-                ep.progress = 100.0
-                ep.state = "succeeded"
+        # Advance by `steps` single ticks so that tick(N) is exactly equivalent
+        # to N calls of tick(1) (one random draw per running endpoint per step).
+        for _ in range(steps):
+            for ep in self.endpoints:
+                if ep.state != "running":
+                    continue
+                # One random draw per running endpoint per tick.
+                if self._rng.random() < ep.failure_rate:
+                    ep.state = "failed"
+                    ep.failed = True
+                    continue
+                ep.progress = min(100.0, ep.progress + 1.0)
+                if ep.progress >= 100.0:
+                    ep.progress = 100.0
+                    ep.state = "succeeded"
         return self
 
     def simulate(self):
