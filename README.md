@@ -5,6 +5,7 @@
 ![Qt](https://img.shields.io/badge/Qt-6.8-41cd52)
 ![.NET](https://img.shields.io/badge/.NET-10-512bd4)
 ![Python](https://img.shields.io/badge/Python-3.11-3776ab)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 A Qt-based **control plane** for scheduling, pausing, and rolling back **fleet-wide software
 patches** — a controller and an observer, two separate desktop apps, watching and driving the
@@ -462,4 +463,4 @@ and consistent error handling:
 
 ## License
 
-See the project repository for license and contribution details.
+MIT — see [LICENSE](LICENSE).
