@@ -68,6 +68,9 @@ app.MapPost("/api/schedules", (CreateScheduleRequest request, IEngineBridge brid
 
     schedules[request.Id] = schedule;
 
+    // Record the schedule-creation operator action (Sprint 33 / E2).
+    schedule.Actions.Add(new ActionLogEntry("schedule", request.Id, DateTimeOffset.UtcNow, "ok"));
+
     // Start a live engine session for this schedule so the control endpoints
     // (pause/resume/rollback) can mutate real engine state. When configured
     // fleet size / failure rate / seed are supplied (Sprint 31 / D7), build the
@@ -82,9 +85,9 @@ app.MapPost("/api/schedules", (CreateScheduleRequest request, IEngineBridge brid
 });
 
 // --- Pause / Resume / Rollback (live EngineSession) ---
-app.MapPost("/api/schedules/{id}/pause", (string id) => ControlSession(id, s => s.Pause()));
-app.MapPost("/api/schedules/{id}/resume", (string id) => ControlSession(id, s => s.Resume()));
-app.MapPost("/api/schedules/{id}/rollback", (string id) => ControlSession(id, s => s.Rollback()));
+app.MapPost("/api/schedules/{id}/pause", (string id) => ControlSession(id, "pause", s => s.Pause()));
+app.MapPost("/api/schedules/{id}/resume", (string id) => ControlSession(id, "resume", s => s.Resume()));
+app.MapPost("/api/schedules/{id}/rollback", (string id) => ControlSession(id, "rollback", s => s.Rollback()));
 
 // --- Tick (advance the live EngineSession deterministically) ---
 app.MapPost("/api/schedules/{id}/tick", (string id, TickRequest? request) =>
@@ -121,6 +124,20 @@ app.MapPost("/api/schedules/{id}/simulate", (string id, SimulateRequest request,
         logger.LogError(ex, "Simulation for schedule {Id} failed", id);
         return Results.Problem("Simulation engine failed", statusCode: 500);
     }
+});
+
+// --- Action log query (Sprint 33 / E2) ---
+// Returns the recorded operator actions for a schedule in chronological order.
+// 404 for an unknown schedule id, matching the other endpoints' style.
+app.MapGet("/api/schedules/{id}/actions", (string id) =>
+{
+    if (!schedules.TryGetValue(id, out var schedule))
+    {
+        logger.LogWarning("Actions requested for unknown schedule {Id}", id);
+        return Results.NotFound(new { error = $"schedule '{id}' not found" });
+    }
+    logger.LogInformation("Actions requested for schedule {Id} ({Count} entries)", id, schedule.Actions.Count);
+    return Results.Ok(schedule.Actions.OrderBy(a => a.Timestamp));
 });
 
 // --- Status query ---
@@ -189,7 +206,7 @@ app.Run();
 // Invoke a live EngineSession operation for a schedule and reflect the new
 // engine state back onto the schedule record. Returns 200 with the updated
 // state, 404 for an unknown schedule id, and 500 if the engine fails.
-IResult ControlSession(string id, Func<EngineSession, EngineResult> action)
+IResult ControlSession(string id, string actionName, Func<EngineSession, EngineResult> action)
 {
     if (!schedules.TryGetValue(id, out var schedule))
     {
@@ -208,6 +225,8 @@ IResult ControlSession(string id, Func<EngineSession, EngineResult> action)
         var result = action(session);
         schedule.Status = StatusFromResult(result);
         PublishState(id, result);
+        // Record the operator action with the resulting state (Sprint 33 / E2).
+        schedule.Actions.Add(new ActionLogEntry(actionName, id, DateTimeOffset.UtcNow, schedule.Status));
         logger.LogInformation("Schedule {Id} control -> {Status}", id, schedule.Status);
         return Results.Ok(new { id = schedule.Id, status = schedule.Status });
     }
@@ -241,6 +260,8 @@ IResult TickSession(string id, int steps)
         var result = session.Tick(steps);
         schedule.Status = StatusFromResult(result);
         PublishState(id, result);
+        // Record the tick operator action (Sprint 33 / E2).
+        schedule.Actions.Add(new ActionLogEntry("tick", id, DateTimeOffset.UtcNow, schedule.Status));
         logger.LogInformation("Schedule {Id} tick x{Steps} -> {Status}", id, steps, schedule.Status);
         return Results.Ok(new
         {
@@ -338,4 +359,7 @@ public class Schedule
     public string? Package { get; set; }
     public string? GroupId { get; set; }
     public string Status { get; set; } = "pending";
+
+    /// <summary>Recorded operator actions in chronological order (Sprint 33 / E2).</summary>
+    public List<ActionLogEntry> Actions { get; } = new();
 }
