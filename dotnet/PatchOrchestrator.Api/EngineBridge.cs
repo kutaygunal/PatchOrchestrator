@@ -16,23 +16,53 @@ public record EngineEndpointResult(string Id, string State, double Progress);
 /// <summary>Parsed result returned by the engine.</summary>
 public record EngineResult(IReadOnlyList<EngineEndpointResult> Endpoints, bool RolledBack);
 
-/// <summary>Drives the Python simulation engine over a JSON subprocess interface.</summary>
-public interface IEngineBridge
+/// <summary>Drives the Python simulation engine over a persistent JSON subprocess interface.</summary>
+public interface IEngineBridge : IDisposable
 {
+    /// <summary>Run a rollout to completion and return the final state.</summary>
     EngineResult Run(EngineRequest request);
+
+    /// <summary>Start a rollout (pending -&gt; running) and return the live state.</summary>
+    EngineResult Start(EngineRequest request);
+
+    /// <summary>Pause the live rollout (running -&gt; paused).</summary>
+    EngineResult Pause();
+
+    /// <summary>Resume the live rollout (paused -&gt; running).</summary>
+    EngineResult Resume();
+
+    /// <summary>Roll back the live rollout (running/paused/failed -&gt; rolled_back).</summary>
+    EngineResult Rollback();
+
+    /// <summary>Advance the live rollout by the given number of steps.</summary>
+    EngineResult Tick(int steps = 1);
+
+    /// <summary>Return the current live rollout state without mutating it.</summary>
+    EngineResult GetState();
 }
 
 /// <summary>
-/// Invokes <c>python bridge.py</c> via a subprocess, passes the request JSON on
-/// stdin, and deserializes the stdout JSON. The <c>python/</c> directory is
-/// resolved via the <c>PATCHORCH_PYTHON_DIR</c> env var (default: <c>../python</c>
-/// relative to the API project).
+/// Invokes <c>python bridge_persistent.py</c> via a single long-lived
+/// subprocess, sends one JSON request per line on stdin, and reads one JSON
+/// response per line from stdout. The subprocess is started lazily on the
+/// first call and reused across all subsequent calls so live engine state
+/// (pause/resume/rollback/tick) persists between calls. The <c>python/</c>
+/// directory is resolved via the <c>PATCHORCH_PYTHON_DIR</c> env var
+/// (default: <c>../python</c> relative to the API project).
 /// </summary>
 public class EngineBridge : IEngineBridge
 {
+    private readonly object _lock = new();
     private readonly string _pythonDir;
     private readonly string _pythonExe;
     private readonly ILogger<EngineBridge>? _logger;
+
+    private Process? _process;
+    private StreamWriter? _stdin;
+    private StreamReader? _stdout;
+    private Task? _stderrDrain;
+    private bool _disposed;
+    private int _processStartCount;
 
     // The logger is optional so the parameterless constructor remains usable
     // in tests; DI supplies the real logger at runtime.
@@ -43,17 +73,118 @@ public class EngineBridge : IEngineBridge
         _logger = logger;
     }
 
+    /// <summary>Number of Python subprocesses started (for lifecycle tests).</summary>
+    public int ProcessStartCount => _processStartCount;
+
+    /// <summary>Whether the long-lived Python subprocess is currently alive.</summary>
+    public bool IsProcessRunning => _process != null && !_process.HasExited;
+
+    /// <summary>PID of the current Python subprocess, or -1 if none is running.</summary>
+    public int ProcessId => _process != null && !_process.HasExited ? _process.Id : -1;
+
     public EngineResult Run(EngineRequest request)
     {
-        _logger?.LogInformation(
-            "EngineBridge: driving Python engine with {Count} endpoint(s), seed {Seed}",
-            request.Endpoints.Count, request.Seed);
-
-        var requestJson = JsonSerializer.Serialize(new
+        lock (_lock)
         {
-            endpoints = request.Endpoints.Select(e => new { id = e.Id, failure_rate = e.FailureRate }),
-            seed = request.Seed,
-        });
+            EnsureStarted();
+            _logger?.LogInformation(
+                "EngineBridge: running Python engine with {Count} endpoint(s), seed {Seed}",
+                request.Endpoints.Count, request.Seed);
+            return SendCommand(new Dictionary<string, object?>
+            {
+                ["cmd"] = "run",
+                ["endpoints"] = request.Endpoints
+                    .Select(e => new { id = e.Id, failure_rate = e.FailureRate })
+                    .ToArray(),
+                ["seed"] = request.Seed,
+            });
+        }
+    }
+
+    public EngineResult Start(EngineRequest request)
+    {
+        lock (_lock)
+        {
+            EnsureStarted();
+            return SendCommand(new Dictionary<string, object?>
+            {
+                ["cmd"] = "start",
+                ["endpoints"] = request.Endpoints
+                    .Select(e => new { id = e.Id, failure_rate = e.FailureRate })
+                    .ToArray(),
+                ["seed"] = request.Seed,
+            });
+        }
+    }
+
+    public EngineResult Pause()
+    {
+        lock (_lock)
+        {
+            EnsureStarted();
+            return SendCommand(new Dictionary<string, object?> { ["cmd"] = "pause" });
+        }
+    }
+
+    public EngineResult Resume()
+    {
+        lock (_lock)
+        {
+            EnsureStarted();
+            return SendCommand(new Dictionary<string, object?> { ["cmd"] = "resume" });
+        }
+    }
+
+    public EngineResult Rollback()
+    {
+        lock (_lock)
+        {
+            EnsureStarted();
+            return SendCommand(new Dictionary<string, object?> { ["cmd"] = "rollback" });
+        }
+    }
+
+    public EngineResult Tick(int steps = 1)
+    {
+        lock (_lock)
+        {
+            EnsureStarted();
+            return SendCommand(new Dictionary<string, object?>
+            {
+                ["cmd"] = "tick",
+                ["steps"] = steps,
+            });
+        }
+    }
+
+    public EngineResult GetState()
+    {
+        lock (_lock)
+        {
+            EnsureStarted();
+            return SendCommand(new Dictionary<string, object?> { ["cmd"] = "state" });
+        }
+    }
+
+    public void Dispose()
+    {
+        lock (_lock)
+        {
+            if (_disposed)
+            {
+                return;
+            }
+            _disposed = true;
+            Shutdown();
+        }
+    }
+
+    private void EnsureStarted()
+    {
+        if (_process != null && !_process.HasExited)
+        {
+            return;
+        }
 
         var psi = new ProcessStartInfo
         {
@@ -65,39 +196,106 @@ public class EngineBridge : IEngineBridge
             UseShellExecute = false,
             CreateNoWindow = true,
         };
-        psi.ArgumentList.Add("bridge.py");
+        psi.ArgumentList.Add("bridge_persistent.py");
         psi.Environment["PYTHONPATH"] = _pythonDir;
 
-        using var process = Process.Start(psi)
+        _process = Process.Start(psi)
             ?? throw new InvalidOperationException("Failed to start python bridge process.");
+        _processStartCount++;
+        _stdin = _process.StandardInput;
+        _stdout = _process.StandardOutput;
+        _stderrDrain = Task.Run(() => DrainStderr(_process.StandardError));
 
-        process.StandardInput.Write(requestJson);
-        process.StandardInput.Close();
-        var stdout = process.StandardOutput.ReadToEnd();
-        var stderr = process.StandardError.ReadToEnd();
-        process.WaitForExit();
+        _logger?.LogInformation("EngineBridge: started persistent Python bridge (pid {Pid})", _process.Id);
+    }
 
-        if (process.ExitCode != 0)
+    private void DrainStderr(StreamReader reader)
+    {
+        try
         {
-            _logger?.LogError(
-                "EngineBridge: Python bridge failed (exit {ExitCode}): {Stderr}",
-                process.ExitCode, stderr.Trim());
-            throw new InvalidOperationException(
-                $"Python bridge failed (exit {process.ExitCode}): {stderr}");
+            string? line;
+            while ((line = reader.ReadLine()) != null)
+            {
+                _logger?.LogInformation("EngineBridge[stderr]: {Line}", line);
+            }
+        }
+        catch
+        {
+            // Process exited; nothing more to drain.
+        }
+    }
+
+    private EngineResult SendCommand(Dictionary<string, object?> payload)
+    {
+        var json = JsonSerializer.Serialize(payload);
+        _stdin!.WriteLine(json);
+        _stdin.Flush();
+
+        var line = _stdout!.ReadLine();
+        if (line == null)
+        {
+            throw new InvalidOperationException("Python bridge closed unexpectedly.");
         }
 
-        var options = new JsonSerializerOptions
+        using var doc = JsonDocument.Parse(line);
+        var root = doc.RootElement;
+        if (root.TryGetProperty("ok", out var ok) && ok.GetBoolean() == false)
         {
-            PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
-            PropertyNameCaseInsensitive = true,
-        };
-        var result = JsonSerializer.Deserialize<EngineResult>(stdout, options)
-            ?? throw new InvalidOperationException("Python bridge returned an empty result.");
+            var error = root.TryGetProperty("error", out var err)
+                ? err.GetString()
+                : "unknown error";
+            throw new InvalidOperationException($"Python bridge error: {error}");
+        }
 
-        _logger?.LogInformation(
-            "EngineBridge: Python engine returned {Count} endpoint result(s), rolled_back={RolledBack}",
-            result.Endpoints.Count, result.RolledBack);
-        return result;
+        return ParseResult(root);
+    }
+
+    private static EngineResult ParseResult(JsonElement root)
+    {
+        var endpoints = new List<EngineEndpointResult>();
+        if (root.TryGetProperty("endpoints", out var endpointsEl) && endpointsEl.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var ep in endpointsEl.EnumerateArray())
+            {
+                endpoints.Add(new EngineEndpointResult(
+                    ep.GetProperty("id").GetString() ?? string.Empty,
+                    ep.GetProperty("state").GetString() ?? string.Empty,
+                    ep.GetProperty("progress").GetDouble()));
+            }
+        }
+
+        var rolledBack = root.TryGetProperty("rolled_back", out var rb) && rb.GetBoolean();
+        return new EngineResult(endpoints, rolledBack);
+    }
+
+    private void Shutdown()
+    {
+        if (_process == null || _process.HasExited)
+        {
+            return;
+        }
+
+        try
+        {
+            _stdin?.WriteLine(JsonSerializer.Serialize(new { cmd = "shutdown" }));
+            _stdin?.Flush();
+            if (!_process.WaitForExit(3000))
+            {
+                _logger?.LogWarning("EngineBridge: Python bridge did not exit cleanly; killing it.");
+                _process.Kill(entireProcessTree: true);
+            }
+        }
+        catch
+        {
+            // Process already gone.
+        }
+        finally
+        {
+            _process?.Dispose();
+            _process = null;
+            _stdin = null;
+            _stdout = null;
+        }
     }
 
     private static string ResolvePythonDir()
