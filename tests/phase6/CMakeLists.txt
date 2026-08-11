@@ -54,11 +54,14 @@ if(Qt6_FOUND)
         ${CMAKE_SOURCE_DIR}/src/ui/animated_progress_bar.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/schedule_editor.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/control_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/scenario_presets.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/scenario_selector.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/state_badge.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/fleet_summary_panel.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/dashboard_legend.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/fleet_size_control.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/failure_rate_control.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/seed_control.cpp
     )
     target_include_directories(a2_layout_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
     target_link_libraries(a2_layout_tests PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
@@ -93,11 +96,14 @@ if(Qt6_FOUND)
         ${CMAKE_SOURCE_DIR}/src/ui/animated_progress_bar.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/schedule_editor.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/control_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/scenario_presets.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/scenario_selector.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/state_badge.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/fleet_summary_panel.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/dashboard_legend.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/fleet_size_control.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/failure_rate_control.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/seed_control.cpp
     )
     target_include_directories(a3_context_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
     target_link_libraries(a3_context_tests PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
@@ -303,9 +309,12 @@ if(Qt6_FOUND)
     add_executable(b7_control_feedback_tests
         b7_control_feedback_tests.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/control_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/scenario_presets.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/scenario_selector.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/fleet_size_control.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/failure_rate_control.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/seed_control.cpp
     )
     target_include_directories(b7_control_feedback_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
     target_link_libraries(b7_control_feedback_tests PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
@@ -612,10 +621,13 @@ if(Qt6_FOUND)
         ${CMAKE_SOURCE_DIR}/src/ui/animated_progress_bar.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/schedule_editor.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/control_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/scenario_presets.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/scenario_selector.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/state_badge.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/fleet_summary_panel.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/dashboard_legend.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/failure_rate_control.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/seed_control.cpp
     )
     target_include_directories(d1_regression_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
     target_link_libraries(d1_regression_tests PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
@@ -686,10 +698,13 @@ if(Qt6_FOUND)
         ${CMAKE_SOURCE_DIR}/src/ui/animated_progress_bar.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/schedule_editor.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/control_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/scenario_presets.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/scenario_selector.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/state_badge.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/fleet_summary_panel.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/dashboard_legend.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/fleet_size_control.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/seed_control.cpp
     )
     target_include_directories(d2_regression_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
     target_link_libraries(d2_regression_tests PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
@@ -761,6 +776,8 @@ if(Qt6_FOUND)
         ${CMAKE_SOURCE_DIR}/src/ui/animated_progress_bar.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/schedule_editor.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/control_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/scenario_presets.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/scenario_selector.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/state_badge.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/fleet_summary_panel.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/dashboard_legend.cpp
@@ -837,6 +854,8 @@ if(Qt6_FOUND)
         ${CMAKE_SOURCE_DIR}/src/ui/animated_progress_bar.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/schedule_editor.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/control_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/scenario_presets.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/scenario_selector.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/state_badge.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/fleet_summary_panel.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/dashboard_legend.cpp
@@ -857,5 +876,91 @@ if(Qt6_FOUND)
     add_test(NAME d4_regression
              COMMAND d4_regression_tests)
     set_tests_properties(d4_regression
+        PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+    # --- Sprint 29 (D5) scenario selector tests (Qt Test) ------------------
+    # Builds the scenario selector wired to the config controls and the shared
+    # context and runs the preset-load, override, and regression tests
+    # offscreen.
+    add_executable(d5_preset_load
+        d5_preset_load_tests.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/scenario_selector.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/scenario_presets.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/fleet_size_control.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/failure_rate_control.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/seed_control.cpp
+    )
+    target_include_directories(d5_preset_load PRIVATE ${CMAKE_SOURCE_DIR}/src)
+    target_link_libraries(d5_preset_load PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
+    target_compile_features(d5_preset_load PRIVATE cxx_std_17)
+
+    if(MSVC)
+        target_compile_options(d5_preset_load PRIVATE /W4)
+    else()
+        target_compile_options(d5_preset_load PRIVATE -Wall -Wextra)
+    endif()
+
+    add_test(NAME d5_preset_load
+             COMMAND d5_preset_load)
+    set_tests_properties(d5_preset_load
+        PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+    add_executable(d5_override
+        d5_override_tests.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/scenario_selector.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/scenario_presets.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/fleet_size_control.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/failure_rate_control.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/seed_control.cpp
+    )
+    target_include_directories(d5_override PRIVATE ${CMAKE_SOURCE_DIR}/src)
+    target_link_libraries(d5_override PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
+    target_compile_features(d5_override PRIVATE cxx_std_17)
+
+    if(MSVC)
+        target_compile_options(d5_override PRIVATE /W4)
+    else()
+        target_compile_options(d5_override PRIVATE -Wall -Wextra)
+    endif()
+
+    add_test(NAME d5_override
+             COMMAND d5_override)
+    set_tests_properties(d5_override
+        PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+    add_executable(d5_regression
+        d5_regression_tests.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/scenario_selector.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/scenario_presets.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_main_window.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/roadmap_tab.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/roadmap_model.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/dashboard.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/animated_progress_bar.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/schedule_editor.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/control_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/state_badge.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/fleet_summary_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/dashboard_legend.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/fleet_size_control.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/failure_rate_control.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/seed_control.cpp
+    )
+    target_include_directories(d5_regression PRIVATE ${CMAKE_SOURCE_DIR}/src)
+    target_link_libraries(d5_regression PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
+    target_compile_features(d5_regression PRIVATE cxx_std_17)
+
+    if(MSVC)
+        target_compile_options(d5_regression PRIVATE /W4)
+    else()
+        target_compile_options(d5_regression PRIVATE -Wall -Wextra)
+    endif()
+
+    add_test(NAME d5_regression
+             COMMAND d5_regression)
+    set_tests_properties(d5_regression
         PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 endif()

@@ -13,6 +13,7 @@
 #include "fleet_size_control.hpp"
 #include "log.hpp"
 #include "seed_control.hpp"
+#include "scenario_selector.hpp"
 
 #include <QGroupBox>
 #include <QHBoxLayout>
@@ -64,6 +65,7 @@ ControlPanelWindow::ControlPanelWindow(QWidget *parent)
     , m_fleetSize(nullptr)
     , m_failureRate(nullptr)
     , m_seed(nullptr)
+    , m_scenario(nullptr)
     , m_baseUrl(envOr("PATCHORCH_API_URL", QStringLiteral("http://localhost:5000")))
     , m_context(nullptr)
     , m_lastKnownState()
@@ -88,6 +90,15 @@ void ControlPanelWindow::buildUi()
     scheduleLayout->addWidget(new QLabel(QStringLiteral("Schedule ID")));
     scheduleLayout->addWidget(m_scheduleId);
     root->addWidget(scheduleBox);
+
+    // --- Sprint 29 (D5): scenario selector ---
+    // A dropdown that loads a preset scenario into the config controls,
+    // overriding any manually set values via the shared DemoAppContext (A3).
+    auto *scenarioBox = new QGroupBox(QStringLiteral("Scenario"), central);
+    auto *scenarioLayout = new QVBoxLayout(scenarioBox);
+    m_scenario = new ScenarioSelector(nullptr, scenarioBox);
+    scenarioLayout->addWidget(m_scenario);
+    root->addWidget(scenarioBox);
 
     // --- Sprint 25 (D1): fleet size config ---
     // A spin box that sets the number of endpoints in the fleet before
@@ -188,6 +199,10 @@ void ControlPanelWindow::setContext(DemoAppContext *context)
 
     // Sprint 27 (D3): bind the seed control to the shared context.
     m_seed->setContext(m_context);
+
+    // Sprint 29 (D5): bind the scenario selector to the shared context so
+    // selecting a preset populates the other controls.
+    m_scenario->setContext(m_context);
 
     // Propagate shared-state changes into this panel.
     connect(m_context, &DemoAppContext::apiBaseUrlChanged, this,

@@ -21,6 +21,7 @@ class DemoAppContext;
 class FleetSizeControl;
 class FailureRateControl;
 class SeedControl;
+class ScenarioSelector;
 
 class ControlPanelWindow : public QMainWindow
 {
@@ -60,6 +61,9 @@ public:
     // Sprint 27 (D3): the seed config control embedded in this panel.
     SeedControl *seedControl() const { return m_seed; }
 
+    // Sprint 29 (D5): the scenario selector embedded in this panel.
+    ScenarioSelector *scenarioSelector() const { return m_scenario; }
+
 private slots:
     void onSchedule();
     void onPause();
@@ -87,6 +91,7 @@ private:
     FleetSizeControl *m_fleetSize;
     FailureRateControl *m_failureRate;
     SeedControl *m_seed;
+    ScenarioSelector *m_scenario;
 
     QNetworkAccessManager m_net;
     QString m_baseUrl;

@@ -106,6 +106,7 @@ if(Qt6_FOUND)
         ui/seed_control.cpp
         ui/demo_scenario.hpp
         ui/scenario_presets.cpp
+        ui/scenario_selector.cpp
     )
     target_link_libraries(patchorchestrator_control_ui PRIVATE Qt6::Widgets Qt6::Network)
     target_compile_features(patchorchestrator_control_ui PRIVATE cxx_std_17)
@@ -145,6 +146,7 @@ if(Qt6_FOUND)
         ui/seed_control.cpp
         ui/demo_scenario.hpp
         ui/scenario_presets.cpp
+        ui/scenario_selector.cpp
     )
     target_link_libraries(patchorchestrator_demo PRIVATE Qt6::Widgets Qt6::Network)
     target_include_directories(patchorchestrator_demo PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
