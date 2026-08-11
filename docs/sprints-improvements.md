@@ -55,7 +55,7 @@ D4–D5 presets, D6–D7 wiring. E1–E3 model/recording before E4–E7 UI panel
 | 35 | S35 | E4 Audit log panel | `QTableWidget`/`QListView` panel in demo hub showing live operator action log | Panel displays log; updates with new entries | Qt widget test: panel renders log entries | E2, A1 | M | DONE |
 | 36 | S36 | E5 Timestamp formatting | Format ISO-8601 timestamps into human-readable local-time display in log panel | Timestamps formatted to local time; readable | Qt unit test: timestamp formatting | E4 | S | DONE |
 | 37 | S37 | E6 Log auto-refresh | Audit log panel refreshes in real time as actions occur (via B5 stream or poll) | Panel auto-refreshes on new actions | Qt integration test: refresh on stream event | E4, B5 | M | DONE |
-| 38 | S38 | E7 Log export | Button to export action log to CSV/JSON for demo handoff | Export produces valid CSV/JSON file | Qt unit test: export file format/content | E4 | S | ASSIGNED |
+| 38 | S38 | E7 Log export | Button to export action log to CSV/JSON for demo handoff | Export produces valid CSV/JSON file | Qt unit test: export file format/content | E4 | S | DONE |
 
 ## Notes
 
