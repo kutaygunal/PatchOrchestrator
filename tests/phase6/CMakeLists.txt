@@ -407,4 +407,37 @@ if(Qt6_FOUND)
              COMMAND c3_state_badge_tests t4_regression)
     set_tests_properties(c3_badge_render c3_reusable c3_legend c3_regression
         PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+    # --- Sprint 21 (C4) fleet summary panel tests (Qt Test) ------------
+    # Builds the fleet summary panel plus the dashboard and runs the
+    # count-aggregation, total, updates-on-change, and regression tests
+    # offscreen.
+    add_executable(c4_fleet_summary_tests
+        c4_fleet_summary_tests.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/fleet_summary_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/state_badge.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/dashboard.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/animated_progress_bar.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
+    )
+    target_include_directories(c4_fleet_summary_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
+    target_link_libraries(c4_fleet_summary_tests PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
+    target_compile_features(c4_fleet_summary_tests PRIVATE cxx_std_17)
+
+    if(MSVC)
+        target_compile_options(c4_fleet_summary_tests PRIVATE /W4)
+    else()
+        target_compile_options(c4_fleet_summary_tests PRIVATE -Wall -Wextra)
+    endif()
+
+    add_test(NAME c4_aggregation
+             COMMAND c4_fleet_summary_tests t1_aggregation)
+    add_test(NAME c4_total
+             COMMAND c4_fleet_summary_tests t2_total)
+    add_test(NAME c4_updates
+             COMMAND c4_fleet_summary_tests t3_updates)
+    add_test(NAME c4_regression
+             COMMAND c4_fleet_summary_tests t4_regression)
+    set_tests_properties(c4_aggregation c4_total c4_updates c4_regression
+        PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 endif()

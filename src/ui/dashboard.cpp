@@ -7,10 +7,12 @@
 #include "dashboard.hpp"
 #include "animated_progress_bar.hpp"
 #include "demo_app_context.hpp"
+#include "fleet_summary_panel.hpp"
 #include "log.hpp"
 #include "state_badge.hpp"
 
 #include <QCloseEvent>
+#include <QDockWidget>
 #include <QHeaderView>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -67,6 +69,7 @@ DashboardWindow::DashboardWindow(QWidget *parent)
     , m_scheduleReady(false)
     , m_context(nullptr)
     , m_streamReply(nullptr)
+    , m_summary(nullptr)
 {
     setWindowTitle(QStringLiteral("PatchOrchestrator — Dashboard"));
     resize(720, 420);
@@ -170,6 +173,16 @@ void DashboardWindow::refreshNow()
 
 void DashboardWindow::buildUi()
 {
+    // Sprint 21 (C4): fleet summary panel docked above the endpoint table.
+    // It aggregates counts by state and the total, and updates whenever the
+    // endpoint data changes (see populateTable).
+    m_summary = new FleetSummaryPanel(this);
+    auto *summaryDock = new QDockWidget(QStringLiteral("Fleet Summary"), this);
+    summaryDock->setObjectName(QStringLiteral("fleetSummaryDock"));
+    summaryDock->setFeatures(QDockWidget::NoDockWidgetFeatures);
+    summaryDock->setWidget(m_summary);
+    addDockWidget(Qt::TopDockWidgetArea, summaryDock);
+
     m_table = new QTableWidget(0, 3, this);
     m_table->setHorizontalHeaderLabels(
         {QStringLiteral("Endpoint ID"), QStringLiteral("State"), QStringLiteral("Progress")});
@@ -375,6 +388,10 @@ void DashboardWindow::populateTable(const QJsonArray &endpoints)
     }
     m_progressBars.resize(n);
     m_table->setRowCount(n);
+
+    // Sprint 21 (C4): keep the fleet summary in sync with the latest data.
+    if (m_summary != nullptr)
+        m_summary->setEndpoints(endpoints);
 
     for (int row = 0; row < n; ++row) {
         const QJsonObject ep = endpoints.at(row).toObject();

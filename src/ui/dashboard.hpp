@@ -18,6 +18,7 @@ class QNetworkReply;
 class QTableWidget;
 class DemoAppContext;
 class AnimatedProgressBar;
+class FleetSummaryPanel;
 
 class DashboardWindow : public QMainWindow
 {
@@ -82,6 +83,10 @@ public:
     // state cell of the given row (nullptr if none).
     QWidget *rowStateBadge(int row) const;
 
+    // Sprint 21 (C4): test accessor — the fleet summary panel (never null
+    // after construction).
+    FleetSummaryPanel *summaryPanel() const { return m_summary; }
+
 protected:
     void closeEvent(QCloseEvent *event) override;
 
@@ -115,6 +120,9 @@ private:
     // Sprint 16 (B6): live status-stream state.
     QNetworkReply *m_streamReply;
     QByteArray m_streamBuffer;
+
+    // Sprint 21 (C4): fleet summary panel aggregating counts by state.
+    FleetSummaryPanel *m_summary;
 };
 
 #endif // PATCHORCHESTRATOR_UI_DASHBOARD_HPP
