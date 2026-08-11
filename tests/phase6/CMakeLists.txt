@@ -1079,6 +1079,7 @@ if(Qt6_FOUND)
     add_executable(e4_render
         e4_render_tests.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/audit_log_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/timestamp_format.cpp
     )
     target_include_directories(e4_render PRIVATE ${CMAKE_SOURCE_DIR}/src)
     target_link_libraries(e4_render PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
@@ -1098,6 +1099,7 @@ if(Qt6_FOUND)
     add_executable(e4_updates
         e4_updates_tests.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/audit_log_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/timestamp_format.cpp
     )
     target_include_directories(e4_updates PRIVATE ${CMAKE_SOURCE_DIR}/src)
     target_link_libraries(e4_updates PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
@@ -1117,6 +1119,7 @@ if(Qt6_FOUND)
     add_executable(e4_regression
         e4_regression_tests.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/audit_log_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/timestamp_format.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/demo_main_window.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/roadmap_tab.cpp
@@ -1148,5 +1151,85 @@ if(Qt6_FOUND)
     add_test(NAME e4_regression
              COMMAND e4_regression)
     set_tests_properties(e4_regression
+        PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+    # --- Sprint 36 (E5) timestamp formatting tests (Qt Test) --------------
+    # Builds the self-contained timestamp formatting helper and runs the
+    # format, readable, local-time-correct, offset, and invalid-input tests
+    # offscreen.
+    add_executable(e5_formatting
+        e5_formatting_tests.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/timestamp_format.cpp
+    )
+    target_include_directories(e5_formatting PRIVATE ${CMAKE_SOURCE_DIR}/src)
+    target_link_libraries(e5_formatting PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
+    target_compile_features(e5_formatting PRIVATE cxx_std_17)
+
+    if(MSVC)
+        target_compile_options(e5_formatting PRIVATE /W4)
+    else()
+        target_compile_options(e5_formatting PRIVATE -Wall -Wextra)
+    endif()
+
+    add_test(NAME e5_formatting
+             COMMAND e5_formatting)
+    set_tests_properties(e5_formatting
+        PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+    add_executable(e5_display
+        e5_display_tests.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/audit_log_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/timestamp_format.cpp
+    )
+    target_include_directories(e5_display PRIVATE ${CMAKE_SOURCE_DIR}/src)
+    target_link_libraries(e5_display PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
+    target_compile_features(e5_display PRIVATE cxx_std_17)
+
+    if(MSVC)
+        target_compile_options(e5_display PRIVATE /W4)
+    else()
+        target_compile_options(e5_display PRIVATE -Wall -Wextra)
+    endif()
+
+    add_test(NAME e5_display
+             COMMAND e5_display)
+    set_tests_properties(e5_display
+        PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+    add_executable(e5_regression
+        e5_regression_tests.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/audit_log_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/timestamp_format.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_main_window.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/roadmap_tab.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/roadmap_model.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/dashboard.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/animated_progress_bar.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/schedule_editor.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/control_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/scenario_presets.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/scenario_selector.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/config_validator.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/state_badge.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/fleet_summary_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/dashboard_legend.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/fleet_size_control.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/failure_rate_control.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/seed_control.cpp
+    )
+    target_include_directories(e5_regression PRIVATE ${CMAKE_SOURCE_DIR}/src)
+    target_link_libraries(e5_regression PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
+    target_compile_features(e5_regression PRIVATE cxx_std_17)
+
+    if(MSVC)
+        target_compile_options(e5_regression PRIVATE /W4)
+    else()
+        target_compile_options(e5_regression PRIVATE -Wall -Wextra)
+    endif()
+
+    add_test(NAME e5_regression
+             COMMAND e5_regression)
+    set_tests_properties(e5_regression
         PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 endif()

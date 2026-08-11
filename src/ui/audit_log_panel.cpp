@@ -2,6 +2,8 @@
 
 #include "audit_log_panel.hpp"
 
+#include "timestamp_format.hpp"
+
 #include <QHeaderView>
 #include <QTableWidget>
 #include <QVBoxLayout>
@@ -64,8 +66,11 @@ void AuditLogPanel::appendRow(const AuditLogEntry &entry)
     const int row = m_table->rowCount();
     m_table->insertRow(row);
 
+    // The timestamp column shows the ISO-8601 value formatted to a readable
+    // local-time string. The underlying entry's raw timestamp is kept intact;
+    // we only format it for display.
     const QString values[] = {
-        entry.action, entry.target, entry.timestamp, entry.result,
+        entry.action, entry.target, formatTimestampLocal(entry.timestamp), entry.result,
     };
     for (int col = 0; col < ColumnCount; ++col) {
         auto *item = new QTableWidgetItem(values[col]);

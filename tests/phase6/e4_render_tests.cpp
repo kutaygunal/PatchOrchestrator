@@ -70,13 +70,21 @@ void E4RenderTests::t2_rendersAllFieldsPerColumn()
 
     panel.setLog({a, b});
 
+    // The timestamp column shows the ISO value formatted to local time (E5).
+    // Compute the expected local-time string independently via Qt.
+    const auto expectedLocal = [](const QString &iso) {
+        return QDateTime::fromString(iso, Qt::ISODate)
+            .toLocalTime()
+            .toString(QStringLiteral("yyyy-MM-dd HH:mm:ss"));
+    };
+
     // Each entry shows its four fields in the correct columns.
     QCOMPARE(panel.cellText(0, AuditLogPanel::ActionColumn),
              QStringLiteral("pause"));
     QCOMPARE(panel.cellText(0, AuditLogPanel::TargetColumn),
              QStringLiteral("sch-9"));
     QCOMPARE(panel.cellText(0, AuditLogPanel::TimestampColumn),
-             QStringLiteral("2025-02-02T12:00:00Z"));
+             expectedLocal(QStringLiteral("2025-02-02T12:00:00Z")));
     QCOMPARE(panel.cellText(0, AuditLogPanel::ResultColumn),
              QStringLiteral("paused"));
 
@@ -85,7 +93,7 @@ void E4RenderTests::t2_rendersAllFieldsPerColumn()
     QCOMPARE(panel.cellText(1, AuditLogPanel::TargetColumn),
              QStringLiteral("sch-3"));
     QCOMPARE(panel.cellText(1, AuditLogPanel::TimestampColumn),
-             QStringLiteral("2025-02-02T12:30:00Z"));
+             expectedLocal(QStringLiteral("2025-02-02T12:30:00Z")));
     QCOMPARE(panel.cellText(1, AuditLogPanel::ResultColumn),
              QStringLiteral("ok"));
 }
