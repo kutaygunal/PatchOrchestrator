@@ -63,8 +63,24 @@ app.MapPost("/api/schedules", (CreateScheduleRequest request, IEngineBridge brid
         Id = request.Id,
         Package = request.Package,
         GroupId = request.GroupId,
-        Status = "running"
+        Status = "running",
+        CreatedAt = DateTimeOffset.UtcNow
     };
+
+    // Derive the engine request (configured fleet, or the default fallback) once
+    // so the live session and the persisted fleet record share the same data.
+    var engineRequest = BuildRequestFromConfig(request);
+
+    // Persist the fleet configuration and the derived endpoint list (P1). The
+    // schedule records its effective seed, fleet size, per-endpoint failure
+    // rate, and the concrete fleet (ep-1 … ep-N with each endpoint's rate).
+    schedule.Seed = engineRequest.Seed;
+    schedule.FleetSize = engineRequest.Endpoints.Count;
+    schedule.FailureRate = engineRequest.Endpoints.First().FailureRate;
+    foreach (var ep in engineRequest.Endpoints)
+    {
+        schedule.Fleet.Add(new ScheduleEndpoint(ep.Id, ep.FailureRate));
+    }
 
     schedules[request.Id] = schedule;
 
@@ -75,13 +91,47 @@ app.MapPost("/api/schedules", (CreateScheduleRequest request, IEngineBridge brid
     // (pause/resume/rollback) can mutate real engine state. When configured
     // fleet size / failure rate / seed are supplied (Sprint 31 / D7), build the
     // engine request from those values; otherwise fall back to the default.
-    sessions[request.Id] = new EngineSession(bridge, BuildRequestFromConfig(request));
+    sessions[request.Id] = new EngineSession(bridge, engineRequest);
 
     // Open a broadcast channel so the status/stream endpoint can deliver live
     // state changes to connected clients.
     streams[request.Id] = Channel.CreateUnbounded<EngineResult>();
 
     return Results.Created($"/api/schedules/{request.Id}", schedule);
+});
+
+// --- List schedules (P1) ---
+// Returns all known schedules newest-first (descending by creation time) so the
+// dashboard can auto-select the latest schedule. Returns 200 with an empty array
+// when no schedules exist.
+app.MapGet("/api/schedules", () =>
+{
+    var summaries = schedules.Values
+        .OrderByDescending(s => s.CreatedAt)
+        .Select(s => new { id = s.Id, status = s.Status, created = s.CreatedAt })
+        .ToList();
+    logger.LogInformation("Listing schedules ({Count})", summaries.Count);
+    return Results.Ok(summaries);
+});
+
+// --- Schedule detail (P1) ---
+// Returns a schedule's persisted fleet configuration and derived endpoints so a
+// later phase can point the dashboard at the API. 404 for an unknown id.
+app.MapGet("/api/schedules/{id}", (string id) =>
+{
+    if (!schedules.TryGetValue(id, out var schedule))
+    {
+        logger.LogWarning("Detail requested for unknown schedule {Id}", id);
+        return Results.NotFound(new { error = $"schedule '{id}' not found" });
+    }
+    logger.LogInformation("Detail requested for schedule {Id}", id);
+    return Results.Ok(new
+    {
+        id = schedule.Id,
+        status = schedule.Status,
+        seed = schedule.Seed,
+        fleet = schedule.Fleet.Select(e => new { e.Id, e.FailureRate }),
+    });
 });
 
 // --- Pause / Resume / Rollback (live EngineSession) ---
@@ -360,6 +410,24 @@ public class Schedule
     public string? GroupId { get; set; }
     public string Status { get; set; } = "pending";
 
+    /// <summary>Effective creation timestamp (UTC), used to order the list newest-first (P1).</summary>
+    public DateTimeOffset CreatedAt { get; set; }
+
+    /// <summary>Effective seed for the schedule's fleet (P1).</summary>
+    public int Seed { get; set; }
+
+    /// <summary>Effective fleet size (number of endpoints) (P1).</summary>
+    public int FleetSize { get; set; }
+
+    /// <summary>Effective per-endpoint failure rate (P1).</summary>
+    public double FailureRate { get; set; }
+
+    /// <summary>Derived fleet endpoints (ep-1 … ep-N) with their failure rates (P1).</summary>
+    public List<ScheduleEndpoint> Fleet { get; } = new();
+
     /// <summary>Recorded operator actions in chronological order (Sprint 33 / E2).</summary>
     public List<ActionLogEntry> Actions { get; } = new();
 }
+
+/// <summary>A single derived fleet endpoint persisted on a schedule (P1).</summary>
+public record ScheduleEndpoint(string Id, double FailureRate);

@@ -1,36 +1,51 @@
-# Plan
+# Plan — Make the Control Panel and Dashboard Work Together
 
-Purpose: PatchOrchestrator: a Qt-based control plane for scheduling, pausing, and rolling back fleet-wide software patches. C++/Qt GUI, Python backend simulation, .NET API. Built to demonstrate C++/Qt cross-platform engineering for the NinjaOne Senior C++ Patching job.
+Purpose: Give the PatchOrchestrator control panel (`patchorchestrator_control_ui`) and the
+read-only dashboard (`patchorchestrator_ui`) a **shared source of truth** so that when an
+operator schedules a job in the control panel, the dashboard automatically discovers and
+renders that same job and its endpoint fleet — without restarting or manually pointing the
+dashboard at a schedule id.
+
+## Current problem (why this plan exists)
+
+- The dashboard hardcodes its endpoint fleet (`ep-1`, `ep-2`, `ep-3`, seed 42) inside
+  `src/ui/dashboard.cpp`. It does not ask the API what endpoints exist.
+- The control panel's **Schedule** button sends only `id`, `package`, `group_id`. It never
+  sends `fleetSize`, `failureRate`, or `seed`, even though those controls exist.
+- The API has **no "list schedules" endpoint** (`GET /api/schedules`), so the dashboard
+  cannot discover a newly created schedule.
+- Result: scheduling in the control panel never appears in the dashboard. There is no shared,
+  authoritative fleet definition per schedule.
+
+## Target design
+
+One authoritative fleet definition per schedule, stored server-side, read by both UIs:
+
+- Control panel sends its fleet config (`fleetSize`, `failureRate`, `seed`) when creating a
+  schedule.
+- API stores that fleet and exposes a schedule list (`GET /api/schedules`).
+- Dashboard reads the fleet from the API instead of hardcoding endpoints, and auto-selects
+  the most recently created schedule (with the existing `PATCHORCH_SCHEDULE_ID` env-var
+  override preserved).
 
 ## Phases (dependency-ordered)
 
 | # | Phase | Description | Priority | Status | Assigned to | Tests | Committed |
 |---|-------|-------------|----------|--------|-------------|-------|-----------|
-| 1 | C++ skeleton + CMake build | DONE | PASS | - | d7e6b62 |
-| 2 | Domain model (C++ core) | Fleet/Endpoint/Group, PatchSchedule, MaintenanceWindow, RolloutStage plain C++ data types + factory/validation, no GUI | High | DONE | PASS | - | 7a85f0a |
-| 3 | Python simulation engine | Endpoint patch state machine (pending/running/paused/failed/rolled-back), progress + failure + rollback modeling, deterministic seeded sim | High | DONE | PASS | - | 1641f81 |
-| 4 | Simulation engine unit tests | pytest suite covering progress, failures, pause/resume, rollback, boundary cases | High | DONE | PASS | - | cc62d1e |
-| 5 | .NET REST API boundary | ASP.NET Core REST endpoints for schedule, pause/resume, rollback, status query; documented contract/OpenAPI | High | DONE | PASS | - | 528d988 |
-| 6 | C++ core unit tests | CTest/gtest coverage of domain model and validation rules | High | DONE | PASS | - | e4c96c5 |
-| 7 | API <-> engine bridge | .NET service calls Python engine over defined interface; API unit/integration tests | High | DONE | PASS | - | da1dee9 |
-| 8 | Qt dashboard UI (read-only) | List simulated endpoints + patch status table, polling/refresh against API, Qt CMake target | High | DONE | PASS | - | fb34222 |
-| 9 | Schedule definition UI | Group/maintenance-window/rollout-stage editor forms wired to API | Medium | DONE | PASS | - | 4790d8d |
-| 10 | Control actions UI | Schedule, pause/resume, rollback buttons wired to API endpoints with confirmation + result feedback | Medium | DONE | PASS | - | 31a36f5 |
-| 11 | End-to-end integration tests | Full GUI->API->engine flow exercised via automated integration suite | Medium | DONE | PASS | - | 7cbc35c |
-| 12 | CI/CD pipeline | GitHub Actions: build all targets, run all test suites, artifact/release job | Medium | DONE | PASS | - | 252ac8c |
-| 13 | README + NinjaOne relevance story | Architecture docs, run/build instructions, screenshots, career relevance narrative | Low | DONE | PASS | - | 210febb |
-| 14 | Polish + hardening | Error handling, logging, packaging/installers, final review + release | Low | DONE | PASS | - | da9c9c8 |
-
-Update the Status and Committed columns as phases complete. Commit tracker updates as
-chore(...) commits.
+| 1 | API: store fleet on create + list schedules | Persist fleet config/endpoints on `POST /api/schedules`; add `GET /api/schedules` returning id, status, created time (newest first) | High | IN PROGRESS | senior-engineer-p1 | P1ApiTests.cs | |
+| 2 | Control panel: send fleet config | Include `fleetSize`, `failureRate`, `seed` in the Schedule POST body from the existing controls | High | NOT STARTED | | | |
+| 3 | Dashboard: auto-discover fleet | Remove hardcoded endpoints; on startup/refresh call `GET /api/schedules`, pick latest (or env override), load its fleet | High | NOT STARTED | | | |
+| 4 | Tests | API integration tests (list + stored fleet + ordering); control-panel payload test; dashboard discovery logic test | High | NOT STARTED | | | |
+| 5 | Build + end-to-end verify | Rebuild all targets; run both UIs; confirm scheduling in the control panel appears in the dashboard | High | NOT STARTED | | | |
+| 6 | Docs | Update README run instructions to describe the shared schedule behavior | Low | NOT STARTED | | | |
 
 ## Dependencies / notes
 
-- P1 must complete first; everything depends on the build skeleton.
-- P2 (domain model) and P3 (Python engine) are independent of each other and can run in
-  parallel after P1.
-- P4 depends on P3; P5 and P6 depend on P2; P7 depends on P5 (API) and is scheduled after
-  the engine is testable.
-- P8–P10 (UI layers) depend on P7 (working API boundary) to consume live data.
-- P11 depends on P8–P10; P12 depends on P4, P6, and P11 (all tests green). P13 and P14 can
-  run late and are non-blocking.
+- P1 must complete first (P2 and P3 depend on the API contract).
+- P2 and P3 are independent of each other after P1 and can run in parallel.
+- P4 depends on P1/P2/P3. P5 depends on P1–P4. P6 depends on P5.
+- Preserve the existing `PATCHORCH_SCHEDULE_ID` env-var override in the dashboard.
+- Do NOT modify the Python engine; it already works deterministically.
+
+Update the Status and Committed columns as phases complete. Commit tracker updates as
+`chore(...)` commits.
