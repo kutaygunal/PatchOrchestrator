@@ -117,11 +117,14 @@ if(Qt6_FOUND)
         ui/demo_main_window.cpp
         ui/demo_app_context.cpp
         ui/demo_mode_controller.cpp
+        ui/demo_mode_bar.cpp
+        ui/demo_script_parser.cpp
         ui/dashboard.cpp
         ui/schedule_editor.cpp
         ui/control_panel.cpp
     )
     target_link_libraries(patchorchestrator_demo PRIVATE Qt6::Widgets Qt6::Network)
+    target_include_directories(patchorchestrator_demo PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
     target_compile_features(patchorchestrator_demo PRIVATE cxx_std_17)
     target_compile_definitions(patchorchestrator_demo PRIVATE PATCHORCHESTRATOR_VERSION="0.1.0")
 

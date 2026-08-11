@@ -158,4 +158,36 @@ if(Qt6_FOUND)
              COMMAND a5_script_parser_tests t4_schemaValidation)
     set_tests_properties(a5_valid_parse a5_step_types a5_invalid_reject a5_schema
         PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+    # --- Sprint 6 (A6) Demo Mode UI tests (Qt Test) -------------------------
+    # Builds DemoModeBar plus the controller and the S5 parser and runs the
+    # button-action, step-indicator, narration, and end-to-end integration
+    # tests offscreen.
+    add_executable(a6_demo_mode_bar_tests
+        a6_demo_mode_bar_tests.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_mode_bar.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_mode_controller.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_script_parser.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
+    )
+    target_include_directories(a6_demo_mode_bar_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
+    target_link_libraries(a6_demo_mode_bar_tests PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
+    target_compile_features(a6_demo_mode_bar_tests PRIVATE cxx_std_17)
+
+    if(MSVC)
+        target_compile_options(a6_demo_mode_bar_tests PRIVATE /W4)
+    else()
+        target_compile_options(a6_demo_mode_bar_tests PRIVATE -Wall -Wextra)
+    endif()
+
+    add_test(NAME a6_buttons
+             COMMAND a6_demo_mode_bar_tests t1_buttonActions)
+    add_test(NAME a6_indicator
+             COMMAND a6_demo_mode_bar_tests t2_stepIndicator)
+    add_test(NAME a6_narration
+             COMMAND a6_demo_mode_bar_tests t3_narration)
+    add_test(NAME a6_integration
+             COMMAND a6_demo_mode_bar_tests t4_integration)
+    set_tests_properties(a6_buttons a6_indicator a6_narration a6_integration
+        PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 endif()
