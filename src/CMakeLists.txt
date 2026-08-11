@@ -60,6 +60,7 @@ if(Qt6_FOUND)
         ui/audit_log_panel.cpp
         ui/timestamp_format.cpp
         ui/dashboard_legend.cpp
+        ui/theme.cpp
         ui/icons.qrc
     )
     target_link_libraries(patchorchestrator_ui PRIVATE Qt6::Widgets Qt6::Network)
@@ -83,6 +84,7 @@ if(Qt6_FOUND)
         ui/schedule_main.cpp
         ui/schedule_editor.cpp
         ui/demo_app_context.cpp
+        ui/theme.cpp
     )
     target_link_libraries(patchorchestrator_schedule_ui PRIVATE Qt6::Widgets Qt6::Network)
     target_compile_features(patchorchestrator_schedule_ui PRIVATE cxx_std_17)
@@ -115,6 +117,8 @@ if(Qt6_FOUND)
         ui/scenario_presets.cpp
         ui/scenario_selector.cpp
         ui/config_validator.cpp
+        ui/state_badge.cpp
+        ui/theme.cpp
         ui/icons.qrc
     )
     target_link_libraries(patchorchestrator_control_ui PRIVATE Qt6::Widgets Qt6::Network)
@@ -159,6 +163,7 @@ if(Qt6_FOUND)
         ui/scenario_presets.cpp
         ui/scenario_selector.cpp
         ui/config_validator.cpp
+        ui/theme.cpp
     )
     target_link_libraries(patchorchestrator_demo PRIVATE Qt6::Widgets Qt6::Network)
     target_include_directories(patchorchestrator_demo PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

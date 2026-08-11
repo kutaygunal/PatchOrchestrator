@@ -11,6 +11,7 @@
 #include "fleet_summary_panel.hpp"
 #include "log.hpp"
 #include "state_badge.hpp"
+#include "window_title_bar.hpp"
 
 #include <QAction>
 #include <QCloseEvent>
@@ -112,6 +113,12 @@ DashboardWindow::DashboardWindow(QWidget *parent)
 {
     setWindowTitle(QStringLiteral("PatchOrchestrator — Dashboard"));
     resize(720, 420);
+
+    // Frameless: this app's only window chrome is the WindowTitleBar built in
+    // buildUi() (brand mark, title, minimize/close). Resizing still works via
+    // the status bar's size grip, which moves the window by mouse delta
+    // rather than relying on native chrome.
+    setWindowFlags(windowFlags() | Qt::FramelessWindowHint);
 
     buildUi();
 
@@ -249,6 +256,12 @@ void DashboardWindow::closeEvent(QCloseEvent *event)
 {
     PATCHORCH_LOG_INFO(QStringLiteral("Dashboard shutting down; stopping poll timer."));
     m_timer.stop();
+    if (m_streamReply != nullptr) {
+        disconnect(m_streamReply, nullptr, this, nullptr);
+        m_streamReply->abort();
+        m_streamReply->deleteLater();
+        m_streamReply = nullptr;
+    }
     event->accept();
 }
 
@@ -262,6 +275,12 @@ void DashboardWindow::refreshNow()
 
 void DashboardWindow::buildUi()
 {
+    // This window is frameless (see the constructor), so WindowTitleBar is
+    // its only chrome: brand mark, title/role, minimize/close.
+    auto *titleBar = new WindowTitleBar(QStringLiteral("PatchOrchestrator"),
+                                         QStringLiteral("Dashboard"), this);
+    setMenuWidget(titleBar);
+
     // P3+fix: a visible Refresh action re-runs schedule discovery so a newly
     // created schedule (e.g. from the control panel) appears immediately.
     auto *toolBar = addToolBar(QStringLiteral("Main"));
@@ -454,6 +473,21 @@ void DashboardWindow::onCreateReply(QNetworkReply *reply)
 
 void DashboardWindow::startStatusStream()
 {
+    // beginPolling() (and therefore this method) can run more than once --
+    // whenever discoverSchedules() picks up a new or overwritten schedule.
+    // Without closing the previous stream first, its connection is silently
+    // orphaned: it keeps delivering events for the OLD schedule, which race
+    // with and corrupt the new schedule's table updates, and its socket
+    // leaks until the server happens to close it. Close it before opening
+    // the replacement.
+    if (m_streamReply != nullptr) {
+        QNetworkReply *previous = m_streamReply;
+        m_streamReply = nullptr;
+        disconnect(previous, nullptr, this, nullptr);
+        previous->abort();
+        previous->deleteLater();
+    }
+
     // Open the B5 SSE stream. It emits one event per live state change
     // (pause/resume/rollback/tick) plus a baseline event on open. Each event
     // carries "status" and "endpoints", which we use to re-render immediately.

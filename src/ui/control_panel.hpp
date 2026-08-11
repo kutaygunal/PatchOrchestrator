@@ -23,6 +23,7 @@ class QNetworkReply;
 class QPushButton;
 class DemoAppContext;
 class ScenarioSelector;
+class StateBadge;
 
 class ControlPanelWindow : public QMainWindow
 {
@@ -87,6 +88,12 @@ public:
     QString validationText() const;
     QString statusText() const;
 
+    // The live rollout-state badge in the Activity card. It renders
+    // m_lastKnownState with the same color/icon/label mapping the dashboard
+    // uses for its table badges (StateBadge's single source of truth), so an
+    // operator sees the identical visual language in both apps.
+    StateBadge *stateBadge() const { return m_stateBadge; }
+
 private slots:
     void onSchedule();
     void onPause();
@@ -101,6 +108,9 @@ private:
     void sendAction(const QString &path, const QString &verb, const QJsonObject &body);
     void sendStatusRequest();
     QString scheduleId() const;
+    // Update m_lastKnownState and the Activity card's live badge together, so
+    // the badge can never drift out of sync with the tracked state.
+    void setLastKnownState(const QString &state);
 
     QLineEdit *m_scheduleId;
     QPushButton *m_scheduleButton;
@@ -112,6 +122,8 @@ private:
     QLabel *m_diffLabel;
     QLabel *m_confirmationLabel;
     QLabel *m_validationLabel;
+    QLabel *m_apiPill;
+    StateBadge *m_stateBadge;
     FleetSizeControl *m_fleetSize;
     FailureRateControl *m_failureRate;
     SeedControl *m_seed;

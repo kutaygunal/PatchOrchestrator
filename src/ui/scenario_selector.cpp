@@ -13,7 +13,15 @@ namespace {
 
 // The placeholder first entry guides the user; it is not a real preset and is
 // ignored by the selection handler.
-const char kPlaceholderText[] = "Select scenario\u2026";
+//
+// This must be a QStringLiteral (UTF-16 at compile time), not a `const
+// char[]` handed to QLatin1String: MSVC encodes the \u2026 escape in a narrow
+// string literal as UTF-8 bytes, and QLatin1String then reinterprets those
+// bytes one-per-character, rendering the ellipsis as "\u00e2\u20ac\u00a6" in the UI.
+QString placeholderText()
+{
+    return QStringLiteral("Select scenario\u2026");
+}
 
 }  // namespace
 
@@ -45,7 +53,7 @@ void ScenarioSelector::rebuildPresetList()
     const QString selected = m_comboBox->currentText();
 
     m_comboBox->clear();
-    m_comboBox->addItem(QLatin1String(kPlaceholderText));
+    m_comboBox->addItem(placeholderText());
     for (const DemoScenario &preset : scenario_presets::all()) {
         m_comboBox->addItem(preset.name);
     }

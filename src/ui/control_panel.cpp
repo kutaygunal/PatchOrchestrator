@@ -15,6 +15,8 @@
 #include "log.hpp"
 #include "seed_control.hpp"
 #include "scenario_selector.hpp"
+#include "state_badge.hpp"
+#include "window_title_bar.hpp"
 
 #include <QDoubleSpinBox>
 #include <QGroupBox>
@@ -66,6 +68,8 @@ ControlPanelWindow::ControlPanelWindow(QWidget *parent)
     , m_diffLabel(nullptr)
     , m_confirmationLabel(nullptr)
     , m_validationLabel(nullptr)
+    , m_apiPill(nullptr)
+    , m_stateBadge(nullptr)
     , m_fleetSize(nullptr)
     , m_failureRate(nullptr)
     , m_seed(nullptr)
@@ -76,7 +80,13 @@ ControlPanelWindow::ControlPanelWindow(QWidget *parent)
     , m_beforeState()
 {
     setWindowTitle(QStringLiteral("PatchOrchestrator — Control Panel"));
-    resize(560, 360);
+    resize(640, 720);
+
+    // Frameless: this app's only window chrome is the WindowTitleBar built in
+    // buildUi() (brand mark, title, API pill, minimize/close). Resizing still
+    // works via the status bar's size grip (added in buildUi()), which moves
+    // the window by mouse delta rather than relying on native chrome.
+    setWindowFlags(windowFlags() | Qt::FramelessWindowHint);
 
     buildUi();
     setStatusMessage(QStringLiteral("API base URL: %1").arg(m_baseUrl));
@@ -86,72 +96,90 @@ void ControlPanelWindow::buildUi()
 {
     auto *central = new QWidget(this);
     auto *root = new QVBoxLayout(central);
+    root->setContentsMargins(16, 16, 16, 16);
+    root->setSpacing(14);
 
-    // --- Schedule id ---
-    auto *scheduleBox = new QGroupBox(QStringLiteral("Schedule"), central);
-    auto *scheduleLayout = new QVBoxLayout(scheduleBox);
+    // --- Title bar -----------------------------------------------------
+    // This window is frameless (see the constructor), so WindowTitleBar is
+    // its only chrome: brand mark, title/role, minimize/close. The active
+    // API endpoint is added as trailing content — an operator running both
+    // apps side by side can see at a glance which backend each is talking
+    // to, instead of having to dig into a status message to find out.
+    auto *titleBar = new WindowTitleBar(QStringLiteral("PatchOrchestrator"),
+                                         QStringLiteral("Control Panel"), this);
+    setMenuWidget(titleBar);
+
+    m_apiPill = new QLabel(m_baseUrl, titleBar);
+    m_apiPill->setObjectName(QStringLiteral("apiPill"));
+    m_apiPill->setStyleSheet(QStringLiteral(
+        "background: #171c25; color: #97a1b3; border: 1px solid #2a3140;"
+        "border-radius: 9px; padding: 3px 10px;"));
+    titleBar->trailingLayout()->addWidget(m_apiPill);
+
+    // --- Rollout configuration ---------------------------------------------
+    // One card instead of five: Schedule/Scenario/Fleet/Failure rate/Seed used
+    // to each get their own bordered QGroupBox, which was mostly repeated
+    // chrome around single-row controls. Grouping them under one heading
+    // reads as a single coherent "what will this rollout look like" step.
+    auto *configBox = new QGroupBox(QStringLiteral("Rollout Configuration"), central);
+    auto *configLayout = new QVBoxLayout(configBox);
+    configLayout->setSpacing(10);
+
+    auto *scheduleRow = new QHBoxLayout;
+    scheduleRow->addWidget(new QLabel(QStringLiteral("Schedule ID")));
     m_scheduleId = makeLineEdit(QStringLiteral("e.g. sch-1"));
-    scheduleLayout->addWidget(new QLabel(QStringLiteral("Schedule ID")));
-    scheduleLayout->addWidget(m_scheduleId);
-    root->addWidget(scheduleBox);
+    scheduleRow->addWidget(m_scheduleId, 1);
+    configLayout->addLayout(scheduleRow);
 
-    // --- Sprint 29 (D5): scenario selector ---
-    // A dropdown that loads a preset scenario into the config controls,
-    // overriding any manually set values via the shared DemoAppContext (A3).
-    auto *scenarioBox = new QGroupBox(QStringLiteral("Scenario"), central);
-    auto *scenarioLayout = new QVBoxLayout(scenarioBox);
-    m_scenario = new ScenarioSelector(nullptr, scenarioBox);
-    scenarioLayout->addWidget(m_scenario);
-    root->addWidget(scenarioBox);
+    // Sprint 29 (D5): scenario selector — loads a preset into the config
+    // controls, overriding any manually set values via the shared
+    // DemoAppContext (A3).
+    m_scenario = new ScenarioSelector(nullptr, configBox);
+    configLayout->addWidget(m_scenario);
 
-    // --- Sprint 25 (D1): fleet size config ---
-    // A spin box that sets the number of endpoints in the fleet before
-    // simulation, storing the value in the shared DemoAppContext (A3).
-    auto *fleetBox = new QGroupBox(QStringLiteral("Fleet"), central);
-    auto *fleetLayout = new QVBoxLayout(fleetBox);
-    m_fleetSize = new FleetSizeControl(nullptr, fleetBox);
-    fleetLayout->addWidget(m_fleetSize);
-    root->addWidget(fleetBox);
+    // Sprint 25 (D1): fleet size.
+    m_fleetSize = new FleetSizeControl(nullptr, configBox);
+    configLayout->addWidget(m_fleetSize);
 
-    // --- Sprint 26 (D2): failure rate config ---
-    // A slider/spin box that sets the per-endpoint failure rate (0.0–1.0),
-    // storing the value in the shared DemoAppContext (A3).
-    auto *failureBox = new QGroupBox(QStringLiteral("Failure Rate"), central);
-    auto *failureLayout = new QVBoxLayout(failureBox);
-    m_failureRate = new FailureRateControl(nullptr, failureBox);
-    failureLayout->addWidget(m_failureRate);
-    root->addWidget(failureBox);
+    // Sprint 26 (D2): failure rate.
+    m_failureRate = new FailureRateControl(nullptr, configBox);
+    configLayout->addWidget(m_failureRate);
 
-    // --- Sprint 27 (D3): seed config ---
-    // A spin box that sets the deterministic seed for reproducible demos,
-    // storing the value in the shared DemoAppContext (A3).
-    auto *seedBox = new QGroupBox(QStringLiteral("Seed"), central);
-    auto *seedLayout = new QVBoxLayout(seedBox);
-    m_seed = new SeedControl(nullptr, seedBox);
-    seedLayout->addWidget(m_seed);
-    root->addWidget(seedBox);
+    // Sprint 27 (D3): seed.
+    m_seed = new SeedControl(nullptr, configBox);
+    configLayout->addWidget(m_seed);
 
-    // --- Sprint 30 (D6): config-validation inline error ---
-    // Shown near the config controls when a rollout is blocked because the
-    // configured fleet size / failure rate / seed is invalid. Empty and hidden
-    // when the config is valid.
-    m_validationLabel = new QLabel(central);
+    // Sprint 30 (D6): config-validation inline error. Shown when a rollout is
+    // blocked because the configured fleet size / failure rate / seed is
+    // invalid. Empty and hidden when the config is valid.
+    m_validationLabel = new QLabel(configBox);
     m_validationLabel->setObjectName(QStringLiteral("validationLabel"));
     m_validationLabel->setWordWrap(true);
     m_validationLabel->setStyleSheet(
-        QStringLiteral("color: #cf222e; font-weight: bold;"));
+        QStringLiteral("color: #ef4444; font-weight: 600;"));
     m_validationLabel->hide();
-    root->addWidget(m_validationLabel);
+    configLayout->addWidget(m_validationLabel);
 
-    // --- Control buttons ---
-    auto *controlBox = new QGroupBox(QStringLiteral("Control Actions"), central);
-    auto *controlLayout = new QVBoxLayout(controlBox);
+    root->addWidget(configBox);
 
-    m_scheduleButton = new QPushButton(QStringLiteral("Schedule"), controlBox);
-    m_pauseButton = new QPushButton(QStringLiteral("Pause"), controlBox);
-    m_resumeButton = new QPushButton(QStringLiteral("Resume"), controlBox);
-    m_rollbackButton = new QPushButton(QStringLiteral("Rollback"), controlBox);
-    m_refreshButton = new QPushButton(QStringLiteral("Refresh Status"), controlBox);
+    // --- Control actions -----------------------------------------------
+    // A single row of icon-labeled buttons rather than a tall button stack.
+    // Icons come from StateBadge::iconForState() — the same glyphs painted
+    // into the state pills the operator sees in this panel's Activity card
+    // and in the Dashboard's table — so the action that causes a transition
+    // uses the exact same symbol as the state it produces.
+    auto *actionsRow = new QHBoxLayout;
+    actionsRow->setSpacing(8);
+
+    m_scheduleButton = new QPushButton(
+        StateBadge::iconForState(QStringLiteral("running")) + QStringLiteral("  Schedule"), central);
+    m_pauseButton = new QPushButton(
+        StateBadge::iconForState(QStringLiteral("paused")) + QStringLiteral("  Pause"), central);
+    m_resumeButton = new QPushButton(
+        StateBadge::iconForState(QStringLiteral("running")) + QStringLiteral("  Resume"), central);
+    m_rollbackButton = new QPushButton(
+        StateBadge::iconForState(QStringLiteral("rolled_back")) + QStringLiteral("  Rollback"), central);
+    m_refreshButton = new QPushButton(QStringLiteral("⟳  Refresh"), central);
 
     m_scheduleButton->setObjectName(QStringLiteral("scheduleButton"));
     m_pauseButton->setObjectName(QStringLiteral("pauseButton"));
@@ -159,33 +187,53 @@ void ControlPanelWindow::buildUi()
     m_rollbackButton->setObjectName(QStringLiteral("rollbackButton"));
     m_refreshButton->setObjectName(QStringLiteral("refreshButton"));
 
-    controlLayout->addWidget(m_scheduleButton);
-    controlLayout->addWidget(m_pauseButton);
-    controlLayout->addWidget(m_resumeButton);
-    controlLayout->addWidget(m_rollbackButton);
-    controlLayout->addWidget(m_refreshButton);
-    root->addWidget(controlBox);
+    actionsRow->addWidget(m_scheduleButton, 1);
+    actionsRow->addWidget(m_pauseButton, 1);
+    actionsRow->addWidget(m_resumeButton, 1);
+    actionsRow->addWidget(m_rollbackButton, 1);
+    actionsRow->addWidget(m_refreshButton, 1);
+    root->addLayout(actionsRow);
 
-    // --- Status label ---
-    m_statusLabel = new QLabel(QStringLiteral("No status yet."), central);
-    m_statusLabel->setWordWrap(true);
-    root->addWidget(m_statusLabel, 1);
+    // --- Activity ------------------------------------------------------
+    // A live StateBadge (the exact widget the Dashboard renders into its
+    // table's State column) replaces the old plain-text status line, so both
+    // apps show the same rollout state the same way: same pill shape, same
+    // color, same icon. The before/after diff and the action confirmation sit
+    // beside it as supporting detail.
+    auto *activityBox = new QGroupBox(QStringLiteral("Activity"), central);
+    auto *activityLayout = new QHBoxLayout(activityBox);
+    activityLayout->setSpacing(12);
 
-    // --- Sprint 17 (B7): before/after state diff + confirmation ---
-    m_diffLabel = new QLabel(QStringLiteral("State diff: —"), central);
+    m_stateBadge = new StateBadge(QString(), activityBox);
+    m_stateBadge->setObjectName(QStringLiteral("controlStateBadge"));
+    activityLayout->addWidget(m_stateBadge, 0, Qt::AlignTop);
+
+    auto *activityDetail = new QVBoxLayout;
+    m_diffLabel = new QLabel(QStringLiteral("State diff: —"), activityBox);
     m_diffLabel->setObjectName(QStringLiteral("diffLabel"));
     m_diffLabel->setWordWrap(true);
     QFont diffFont = m_diffLabel->font();
     diffFont.setBold(true);
     m_diffLabel->setFont(diffFont);
-    root->addWidget(m_diffLabel);
+    activityDetail->addWidget(m_diffLabel);
 
-    m_confirmationLabel = new QLabel(QStringLiteral("No action performed yet."), central);
+    m_confirmationLabel = new QLabel(QStringLiteral("No action performed yet."), activityBox);
     m_confirmationLabel->setObjectName(QStringLiteral("confirmationLabel"));
     m_confirmationLabel->setWordWrap(true);
     m_confirmationLabel->setStyleSheet(
         QStringLiteral("color: #1a7f37; font-weight: bold;"));
-    root->addWidget(m_confirmationLabel);
+    activityDetail->addWidget(m_confirmationLabel);
+    activityDetail->addStretch(1);
+
+    activityLayout->addLayout(activityDetail, 1);
+    root->addWidget(activityBox);
+
+    // --- Footer status line ---------------------------------------------
+    m_statusLabel = new QLabel(QStringLiteral("No status yet."), central);
+    m_statusLabel->setWordWrap(true);
+    m_statusLabel->setStyleSheet(QStringLiteral("color: #97a1b3; font-size: 12px;"));
+    root->addWidget(m_statusLabel);
+    root->addStretch(1);
 
     setCentralWidget(central);
 
@@ -215,6 +263,7 @@ void ControlPanelWindow::setContext(DemoAppContext *context)
     // Adopt the shared values as the panel's working state.
     m_baseUrl = m_context->apiBaseUrl();
     m_scheduleId->setText(m_context->scheduleId());
+    m_apiPill->setText(m_baseUrl);
     setStatusMessage(QStringLiteral("API base URL: %1").arg(m_baseUrl));
 
     // Sprint 25 (D1): bind the fleet-size control to the shared context.
@@ -232,12 +281,15 @@ void ControlPanelWindow::setContext(DemoAppContext *context)
 
     // Propagate shared-state changes into this panel.
     connect(m_context, &DemoAppContext::apiBaseUrlChanged, this,
-            [this](const QString &url) { m_baseUrl = url; });
+            [this](const QString &url) {
+                m_baseUrl = url;
+                m_apiPill->setText(url);
+            });
     connect(m_context, &DemoAppContext::scheduleIdChanged, this,
             [this](const QString &id) { m_scheduleId->setText(id); });
     connect(m_context, &DemoAppContext::rolloutStateChanged, this,
             [this](const QString &state) {
-                m_lastKnownState = state;
+                setLastKnownState(state);
                 setStatusMessage(QStringLiteral("Schedule %1 — status: %2")
                                      .arg(m_scheduleId->text().trimmed(), state));
             });
@@ -454,7 +506,7 @@ void ControlPanelWindow::onReply(QNetworkReply *reply)
         const QJsonObject root = doc.object();
         const QString status =
             root.value(QStringLiteral("status")).toString(QStringLiteral("unknown"));
-        m_lastKnownState = status;
+        setLastKnownState(status);
         if (m_context != nullptr)
             m_context->setRolloutState(status);
         setStatusMessage(QStringLiteral("Schedule %1 — status: %2")
@@ -475,12 +527,42 @@ void ControlPanelWindow::onReply(QNetworkReply *reply)
         return;
     }
 
-    setStatusMessage(QStringLiteral("Success (%1): %2").arg(url, QString::fromUtf8(payload)));
+    // Schedule creation (POST /api/schedules) returns the persisted schedule
+    // as JSON. Surface a plain-language summary instead of dumping the raw
+    // payload into the UI, and reflect the schedule's initial status (the
+    // API always starts a new schedule "running") in the Activity badge —
+    // the same visual feedback pause/resume/rollback already get.
+    if (url.endsWith(QStringLiteral("/api/schedules"))) {
+        const QJsonDocument doc = QJsonDocument::fromJson(payload);
+        const QJsonObject root = doc.object();
+        const QString id = root.value(QStringLiteral("id")).toString();
+        const QString status =
+            root.value(QStringLiteral("status")).toString(QStringLiteral("running"));
+        const int fleetSize = root.value(QStringLiteral("fleetSize")).toInt();
+        const double failureRate = root.value(QStringLiteral("failureRate")).toDouble();
+        const int seed = root.value(QStringLiteral("seed")).toInt();
+
+        setLastKnownState(status);
+        if (m_context != nullptr)
+            m_context->setRolloutState(status);
+
+        setStatusMessage(QStringLiteral(
+            "Schedule '%1' created — %2 endpoint(s), %3% failure rate, seed %4. Rollout started.")
+                .arg(id)
+                .arg(fleetSize)
+                .arg(qRound(failureRate * 100))
+                .arg(seed));
+        return;
+    }
+
+    // Fallback for any other successful response: still no raw JSON, so a
+    // future endpoint added here never leaks a payload dump into the UI.
+    setStatusMessage(QStringLiteral("Request to %1 succeeded.").arg(url));
 }
 
 void ControlPanelWindow::handleActionResult(const QString &before, const QString &after)
 {
-    m_lastKnownState = after;
+    setLastKnownState(after);
     if (m_context != nullptr)
         m_context->setRolloutState(after);
 
@@ -558,4 +640,11 @@ void ControlPanelWindow::setStatusMessage(const QString &message)
 {
     m_statusLabel->setText(message);
     statusBar()->showMessage(message);
+}
+
+void ControlPanelWindow::setLastKnownState(const QString &state)
+{
+    m_lastKnownState = state;
+    if (m_stateBadge != nullptr)
+        m_stateBadge->setState(state);
 }

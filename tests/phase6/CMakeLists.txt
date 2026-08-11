@@ -322,6 +322,7 @@ if(Qt6_FOUND)
         ${CMAKE_SOURCE_DIR}/src/ui/fleet_size_control.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/failure_rate_control.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/seed_control.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/state_badge.cpp
     )
     target_include_directories(b7_control_feedback_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
     target_link_libraries(b7_control_feedback_tests PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
@@ -1019,6 +1020,7 @@ if(Qt6_FOUND)
         ${CMAKE_SOURCE_DIR}/src/ui/fleet_size_control.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/failure_rate_control.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/seed_control.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/state_badge.cpp
     )
     target_include_directories(d6_blocked PRIVATE ${CMAKE_SOURCE_DIR}/src)
     target_link_libraries(d6_blocked PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
@@ -1045,6 +1047,7 @@ if(Qt6_FOUND)
         ${CMAKE_SOURCE_DIR}/src/ui/fleet_size_control.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/failure_rate_control.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/seed_control.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/state_badge.cpp
     )
     target_include_directories(d6_errors PRIVATE ${CMAKE_SOURCE_DIR}/src)
     target_link_libraries(d6_errors PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
@@ -1071,6 +1074,7 @@ if(Qt6_FOUND)
         ${CMAKE_SOURCE_DIR}/src/ui/fleet_size_control.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/failure_rate_control.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/seed_control.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/state_badge.cpp
     )
     target_include_directories(d6_regression PRIVATE ${CMAKE_SOURCE_DIR}/src)
     target_link_libraries(d6_regression PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
@@ -1431,6 +1435,7 @@ if(Qt6_FOUND)
         ${CMAKE_SOURCE_DIR}/src/ui/fleet_size_control.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/failure_rate_control.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/seed_control.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/state_badge.cpp
     )
     target_include_directories(p2_control_payload PRIVATE ${CMAKE_SOURCE_DIR}/src)
     target_link_libraries(p2_control_payload PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)

@@ -2,9 +2,10 @@
 //
 // A small, self-contained widget that explains the color coding and state
 // meanings for demo viewers. It renders one entry per known patch state
-// (succeeded/failed/paused/running/pending/rolled_back) using the C2/C3
-// state->color mapping (owned by StateBadge), so the legend always stays in
-// sync with the colors applied to rows/badges in the dashboard.
+// (succeeded/failed/paused/running/pending/rolled_back) as an actual
+// StateBadge chip — the exact widget the dashboard's table renders into its
+// State column — labeled with its meaning, so the legend doesn't just
+// describe the badges, it *is* one of each of them.
 
 #ifndef PATCHORCHESTRATOR_UI_DASHBOARD_LEGEND_HPP
 #define PATCHORCHESTRATOR_UI_DASHBOARD_LEGEND_HPP
@@ -35,8 +36,6 @@ public:
 
 private:
     QStringList m_states;
-    QList<QLabel *> m_swatches;
-    QList<QLabel *> m_labels;
     QLabel *m_titleLabel;
 };
 

@@ -58,7 +58,10 @@ QString StateBadge::iconForState(const QString &state)
     if (state == QLatin1String("failed"))
         return QStringLiteral("\u2717");   // cross
     if (state == QLatin1String("paused"))
-        return QStringLiteral("\u23F8");   // pause
+        // U+23F8 (\u23F8) falls back to a generic tofu box in several system
+        // fonts at UI sizes; U+2016 (double vertical line) renders reliably
+        // everywhere and still reads unambiguously as "paused".
+        return QStringLiteral("\u2016");   // pause
     if (state == QLatin1String("running"))
         return QStringLiteral("\u25B6");   // play
     if (state == QLatin1String("pending"))

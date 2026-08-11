@@ -4,45 +4,53 @@
 #include "state_badge.hpp"
 
 #include <QGridLayout>
+#include <QHBoxLayout>
 #include <QLabel>
+#include <QVBoxLayout>
+
+namespace {
+
+// Entries wrap after this many columns instead of running in one long row,
+// so the legend still reads cleanly at the dashboard's default (and
+// typically laptop-constrained) window width instead of squeezing every
+// badge below its own size hint.
+constexpr int kColumns = 3;
+
+} // namespace
 
 DashboardLegend::DashboardLegend(QWidget *parent)
     : QWidget(parent)
     , m_titleLabel(nullptr)
 {
-    auto *layout = new QGridLayout(this);
-    layout->setContentsMargins(8, 6, 8, 6);
-    layout->setHorizontalSpacing(12);
-    layout->setVerticalSpacing(2);
+    auto *root = new QVBoxLayout(this);
+    root->setContentsMargins(8, 6, 8, 6);
+    root->setSpacing(6);
 
     m_titleLabel = new QLabel(QStringLiteral("Legend — State colors"), this);
     m_titleLabel->setStyleSheet(QStringLiteral("font-weight: bold;"));
-    layout->addWidget(m_titleLabel, 0, 0, 1, 2);
+    root->addWidget(m_titleLabel);
 
-    // One entry per known state, in the C2/C3 display order. Each entry shows
-    // a color swatch (from the single source of truth) and a human-readable
-    // label/meaning.
+    // One real StateBadge chip per known state, in the C2/C3 display order.
+    // Because this is the same StateBadge widget the table's State column
+    // renders — icon and label already baked into the one widget — the
+    // legend can never drift out of visual sync with what it's explaining,
+    // and there's no separate "= meaning" text repeating what the badge
+    // already says. Wrapped into a grid (kColumns per row) rather than one
+    // long row, so badges keep their full width regardless of the window's
+    // width.
+    auto *grid = new QGridLayout;
+    grid->setHorizontalSpacing(20);
+    grid->setVerticalSpacing(8);
+
     m_states = StateBadge::legendStates();
     for (int i = 0; i < m_states.size(); ++i) {
         const QString &state = m_states.at(i);
-
-        auto *swatch = new QLabel(this);
-        swatch->setFixedSize(16, 16);
-        swatch->setStyleSheet(
-            QStringLiteral("background-color: %1; border: 1px solid #888;")
-                .arg(StateBadge::colorForState(state).name()));
-        layout->addWidget(swatch, i + 1, 0);
-        m_swatches.append(swatch);
-
-        auto *label = new QLabel(
-            QStringLiteral("%1 — %2")
-                .arg(StateBadge::labelForState(state), StateBadge::iconForState(state)),
-            this);
-        layout->addWidget(label, i + 1, 1);
-        m_labels.append(label);
+        auto *badge = new StateBadge(state, this);
+        grid->addWidget(badge, i / kColumns, i % kColumns, Qt::AlignLeft);
     }
-
-    layout->setColumnStretch(1, 1);
+    for (int c = 0; c < kColumns; ++c)
+        grid->setColumnStretch(c, 1);
+    root->addLayout(grid);
 }
 
 QString DashboardLegend::title() const

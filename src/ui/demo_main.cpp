@@ -16,6 +16,7 @@
 #include "demo_mode_bar.hpp"
 #include "demo_mode_controller.hpp"
 #include "demo_script_parser.hpp"
+#include "theme.hpp"
 
 #include <QApplication>
 #include <QDockWidget>
@@ -47,6 +48,7 @@ int main(int argc, char *argv[])
     QApplication::setOrganizationName(QStringLiteral("PatchOrchestrator"));
     QApplication::setApplicationName(QStringLiteral("PatchOrchestrator"));
     QApplication::setApplicationVersion(QStringLiteral("0.1.0"));
+    Theme::apply(app);
 
     DemoMainWindow window;
     window.show();
