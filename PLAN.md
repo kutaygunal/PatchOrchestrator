@@ -33,10 +33,10 @@ One authoritative fleet definition per schedule, stored server-side, read by bot
 | # | Phase | Description | Priority | Status | Assigned to | Tests | Committed |
 |---|-------|-------------|----------|--------|-------------|-------|-----------|
 | 1 | API: store fleet on create + list schedules | Persist fleet config/endpoints on `POST /api/schedules`; add `GET /api/schedules` returning id, status, created time (newest first) | High | DONE | senior-engineer-p1 | P1ApiTests.cs | yes |
-| 2 | Control panel: send fleet config | Include `fleetSize`, `failureRate`, `seed` in the Schedule POST body from the existing controls | High | IN PROGRESS | senior-engineer-p2 | p2_control_payload_tests.cpp | |
-| 3 | Dashboard: auto-discover fleet | Remove hardcoded endpoints; on startup/refresh call `GET /api/schedules`, pick latest (or env override), load its fleet | High | IN PROGRESS | senior-engineer-p3 | p3_dashboard_discovery_tests.cpp | |
-| 4 | Tests | API integration tests (list + stored fleet + ordering); control-panel payload test; dashboard discovery logic test | High | NOT STARTED | | | |
-| 5 | Build + end-to-end verify | Rebuild all targets; run both UIs; confirm scheduling in the control panel appears in the dashboard | High | NOT STARTED | | | |
+| 2 | Control panel: send fleet config | Include `fleetSize`, `failureRate`, `seed` in the Schedule POST body from the existing controls | High | DONE | senior-engineer-p2 | p2_control_payload_tests.cpp | yes |
+| 3 | Dashboard: auto-discover fleet | Remove hardcoded endpoints; on startup/refresh call `GET /api/schedules`, pick latest (or env override), load its fleet | High | DONE | senior-engineer-p3 | p3_dashboard_discovery_tests.cpp | yes |
+| 4 | Tests | API integration tests (list + stored fleet + ordering); control-panel payload test; dashboard discovery logic test | High | DONE | scrum-master | P1ApiTests + p2 + p3 suites | yes |
+| 5 | Build + end-to-end verify | Rebuild all targets; run both UIs; confirm scheduling in the control panel appears in the dashboard | High | DONE | senior-engineer-p5 | docs/p5-verify.md | Verified: schedule e2e-1 (fleet 5/0.4/seed 123) created via control panel; dashboard auto-discovered e2e-1 + rendered 5 endpoints (ep-1..ep-5) from API; no hardcoded endpoints |
 | 6 | Docs | Update README run instructions to describe the shared schedule behavior | Low | NOT STARTED | | | |
 
 ## Dependencies / notes
