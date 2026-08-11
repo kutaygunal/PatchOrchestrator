@@ -73,3 +73,10 @@ void DemoAppContext::setSeed(int seed)
     m_seed = seed;
     emit seedChanged(m_seed);
 }
+
+void DemoAppContext::applyScenario(const DemoScenario &scenario)
+{
+    setFleetSize(scenario.fleetSize);
+    setFailureRate(scenario.failureRate);
+    setSeed(scenario.seed);
+}

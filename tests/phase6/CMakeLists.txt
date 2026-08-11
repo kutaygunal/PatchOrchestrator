@@ -781,4 +781,81 @@ if(Qt6_FOUND)
              COMMAND d3_regression_tests)
     set_tests_properties(d3_regression
         PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+    # --- Sprint 28 (D4) scenario preset tests (Qt Test) ------------------
+    # Builds the D4 scenario model/presets plus the shared context and runs
+    # the preset-data-correctness, loads-correct-config-values, and
+    # regression tests offscreen.
+    add_executable(d4_presets_tests
+        d4_presets_tests.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/scenario_presets.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
+    )
+    target_include_directories(d4_presets_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
+    target_link_libraries(d4_presets_tests PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
+    target_compile_features(d4_presets_tests PRIVATE cxx_std_17)
+
+    if(MSVC)
+        target_compile_options(d4_presets_tests PRIVATE /W4)
+    else()
+        target_compile_options(d4_presets_tests PRIVATE -Wall -Wextra)
+    endif()
+
+    add_test(NAME d4_presets
+             COMMAND d4_presets_tests)
+    set_tests_properties(d4_presets
+        PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+    add_executable(d4_load_tests
+        d4_load_tests.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/scenario_presets.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
+    )
+    target_include_directories(d4_load_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
+    target_link_libraries(d4_load_tests PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
+    target_compile_features(d4_load_tests PRIVATE cxx_std_17)
+
+    if(MSVC)
+        target_compile_options(d4_load_tests PRIVATE /W4)
+    else()
+        target_compile_options(d4_load_tests PRIVATE -Wall -Wextra)
+    endif()
+
+    add_test(NAME d4_load
+             COMMAND d4_load_tests)
+    set_tests_properties(d4_load
+        PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+    add_executable(d4_regression_tests
+        d4_regression_tests.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/scenario_presets.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_main_window.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/roadmap_tab.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/roadmap_model.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/dashboard.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/animated_progress_bar.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/schedule_editor.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/control_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/state_badge.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/fleet_summary_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/dashboard_legend.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/fleet_size_control.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/failure_rate_control.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/seed_control.cpp
+    )
+    target_include_directories(d4_regression_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
+    target_link_libraries(d4_regression_tests PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
+    target_compile_features(d4_regression_tests PRIVATE cxx_std_17)
+
+    if(MSVC)
+        target_compile_options(d4_regression_tests PRIVATE /W4)
+    else()
+        target_compile_options(d4_regression_tests PRIVATE -Wall -Wextra)
+    endif()
+
+    add_test(NAME d4_regression
+             COMMAND d4_regression_tests)
+    set_tests_properties(d4_regression
+        PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 endif()

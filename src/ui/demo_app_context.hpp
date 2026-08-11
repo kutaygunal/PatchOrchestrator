@@ -12,6 +12,8 @@
 #include <QObject>
 #include <QString>
 
+#include "demo_scenario.hpp"
+
 class DemoAppContext : public QObject
 {
     Q_OBJECT
@@ -41,6 +43,11 @@ public slots:
     void setFleetSize(int size);
     void setFailureRate(double rate);
     void setSeed(int seed);
+
+    // Apply a predefined scenario (Sprint 28 / D4) to the config fields. Sets
+    // the fleet size, failure rate, and seed from the scenario; each change is
+    // change-only, so only fields whose value actually changes emit a signal.
+    void applyScenario(const DemoScenario &scenario);
 
 signals:
     void scheduleIdChanged(const QString &id);
