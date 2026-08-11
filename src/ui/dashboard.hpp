@@ -9,12 +9,14 @@
 #include <QMainWindow>
 #include <QNetworkAccessManager>
 #include <QTimer>
+#include <QVector>
 
 class QCloseEvent;
 class QJsonArray;
 class QNetworkReply;
 class QTableWidget;
 class DemoAppContext;
+class AnimatedProgressBar;
 
 class DashboardWindow : public QMainWindow
 {
@@ -55,6 +57,11 @@ public:
     int rowCount() const;
     QString cellText(int row, int col) const;
 
+    // Sprint 18 (C1): animated progress bar accessors for tests.
+    int progressBarCount() const;
+    int progressBarValue(int row) const;
+    int progressBarTarget(int row) const;
+
 protected:
     void closeEvent(QCloseEvent *event) override;
 
@@ -81,6 +88,9 @@ private:
     QString m_scheduleId;
     bool m_scheduleReady;
     DemoAppContext *m_context;
+
+    // Sprint 18 (C1): one animated progress bar per endpoint row.
+    QVector<AnimatedProgressBar *> m_progressBars;
 
     // Sprint 16 (B6): live status-stream state.
     QNetworkReply *m_streamReply;

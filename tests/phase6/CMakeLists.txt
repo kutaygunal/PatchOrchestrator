@@ -51,6 +51,7 @@ if(Qt6_FOUND)
         ${CMAKE_SOURCE_DIR}/src/ui/roadmap_tab.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/roadmap_model.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/dashboard.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/animated_progress_bar.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/schedule_editor.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/control_panel.cpp
     )
@@ -84,6 +85,7 @@ if(Qt6_FOUND)
         ${CMAKE_SOURCE_DIR}/src/ui/roadmap_tab.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/roadmap_model.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/dashboard.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/animated_progress_bar.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/schedule_editor.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/control_panel.cpp
     )
@@ -258,6 +260,7 @@ if(Qt6_FOUND)
     add_executable(b6_dashboard_live_tests
         b6_dashboard_live_tests.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/dashboard.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/animated_progress_bar.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
     )
     target_include_directories(b6_dashboard_live_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
@@ -308,5 +311,36 @@ if(Qt6_FOUND)
     add_test(NAME b7_regression
              COMMAND b7_control_feedback_tests t4_regression)
     set_tests_properties(b7_state_diff b7_confirmation b7_per_action b7_regression
+        PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+    # --- Sprint 18 (C1) animated progress bar tests (Qt Test) ------------
+    # Builds the animated progress bar plus the dashboard and runs the
+    # animation-target, per-endpoint, target-change, and regression tests
+    # offscreen.
+    add_executable(c1_animated_progress_tests
+        c1_animated_progress_tests.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/animated_progress_bar.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/dashboard.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
+    )
+    target_include_directories(c1_animated_progress_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
+    target_link_libraries(c1_animated_progress_tests PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
+    target_compile_features(c1_animated_progress_tests PRIVATE cxx_std_17)
+
+    if(MSVC)
+        target_compile_options(c1_animated_progress_tests PRIVATE /W4)
+    else()
+        target_compile_options(c1_animated_progress_tests PRIVATE -Wall -Wextra)
+    endif()
+
+    add_test(NAME c1_animation_target
+             COMMAND c1_animated_progress_tests t1_animationReachesTarget)
+    add_test(NAME c1_per_endpoint
+             COMMAND c1_animated_progress_tests t2_perEndpointBars)
+    add_test(NAME c1_target_change
+             COMMAND c1_animated_progress_tests t3_targetChangeReanimates)
+    add_test(NAME c1_regression
+             COMMAND c1_animated_progress_tests t4_regression)
+    set_tests_properties(c1_animation_target c1_per_endpoint c1_target_change c1_regression
         PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 endif()

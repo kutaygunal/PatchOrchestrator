@@ -5,6 +5,7 @@
 // configurable via the PATCHORCH_API_URL and PATCHORCH_SCHEDULE_ID env vars.
 
 #include "dashboard.hpp"
+#include "animated_progress_bar.hpp"
 #include "demo_app_context.hpp"
 #include "log.hpp"
 
@@ -103,6 +104,25 @@ QString DashboardWindow::cellText(int row, int col) const
 {
     QTableWidgetItem *item = m_table->item(row, col);
     return item != nullptr ? item->text() : QString();
+}
+
+int DashboardWindow::progressBarCount() const
+{
+    return m_progressBars.size();
+}
+
+int DashboardWindow::progressBarValue(int row) const
+{
+    if (row < 0 || row >= m_progressBars.size() || m_progressBars[row] == nullptr)
+        return -1;
+    return m_progressBars[row]->value();
+}
+
+int DashboardWindow::progressBarTarget(int row) const
+{
+    if (row < 0 || row >= m_progressBars.size() || m_progressBars[row] == nullptr)
+        return -1;
+    return m_progressBars[row]->target();
 }
 
 // Graceful shutdown: stop the polling timer before the window is destroyed so
@@ -315,8 +335,19 @@ void DashboardWindow::onStatusReply(QNetworkReply *reply)
 
 void DashboardWindow::populateTable(const QJsonArray &endpoints)
 {
-    m_table->setRowCount(endpoints.size());
-    for (int row = 0; row < endpoints.size(); ++row) {
+    const int n = endpoints.size();
+
+    // Shrink the per-endpoint bar vector first, detaching removed bars from
+    // the table so they are not double-deleted by the table and the vector.
+    if (n < m_progressBars.size()) {
+        for (int row = n; row < m_progressBars.size(); ++row) {
+            m_table->setCellWidget(row, 2, nullptr);
+        }
+    }
+    m_progressBars.resize(n);
+    m_table->setRowCount(n);
+
+    for (int row = 0; row < n; ++row) {
         const QJsonObject ep = endpoints.at(row).toObject();
         const QString id = ep.value(QStringLiteral("id")).toString();
         const QString state = ep.value(QStringLiteral("state")).toString();
@@ -324,14 +355,19 @@ void DashboardWindow::populateTable(const QJsonArray &endpoints)
 
         auto *idItem = new QTableWidgetItem(id);
         auto *stateItem = new QTableWidgetItem(state);
-        // Engine reports progress as a float in [0.0, 100.0] (already a
-        // percentage). Display it directly; do NOT multiply by 100 again.
-        auto *progressItem = new QTableWidgetItem(
-            QStringLiteral("%1%").arg(static_cast<int>(progress)));
-
         m_table->setItem(row, 0, idItem);
         m_table->setItem(row, 1, stateItem);
-        m_table->setItem(row, 2, progressItem);
+
+        // Sprint 18 (C1): animated progress bar per endpoint. Reuse the bar so
+        // it animates from its current value to the new target instead of
+        // resetting to zero on every refresh.
+        AnimatedProgressBar *bar = m_progressBars[row];
+        if (bar == nullptr) {
+            bar = new AnimatedProgressBar(m_table);
+            m_progressBars[row] = bar;
+            m_table->setCellWidget(row, 2, bar);
+        }
+        bar->setTarget(static_cast<int>(progress));
     }
 }
 

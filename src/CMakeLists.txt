@@ -51,6 +51,7 @@ if(Qt6_FOUND)
     add_executable(patchorchestrator_ui
         ui/dashboard_main.cpp
         ui/dashboard.cpp
+        ui/animated_progress_bar.cpp
         ui/demo_app_context.cpp
     )
     target_link_libraries(patchorchestrator_ui PRIVATE Qt6::Widgets Qt6::Network)
@@ -125,6 +126,7 @@ if(Qt6_FOUND)
         ui/roadmap_tab.cpp
         ui/roadmap_model.cpp
         ui/dashboard.cpp
+        ui/animated_progress_bar.cpp
         ui/schedule_editor.cpp
         ui/control_panel.cpp
     )
