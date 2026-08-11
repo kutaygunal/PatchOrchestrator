@@ -20,6 +20,7 @@
 #include "ui/control_panel.hpp"
 #include "ui/dashboard.hpp"
 #include "ui/demo_main_window.hpp"
+#include "ui/roadmap_tab.hpp"
 #include "ui/schedule_editor.hpp"
 
 namespace {
@@ -60,7 +61,7 @@ void A2LayoutTests::init()
 void A2LayoutTests::t1_layoutRoundTrip()
 {
     DemoMainWindow w1;
-    QCOMPARE(w1.tabWidget()->count(), 3);
+    QCOMPARE(w1.tabWidget()->count(), 4);
 
     // Reorder: move Control Panel (index 2) to the front.
     w1.tabWidget()->tabBar()->moveTab(2, 0);
@@ -90,8 +91,9 @@ void A2LayoutTests::t2_widgetEmbedding()
     QVERIFY(w.dashboard() != nullptr);
     QVERIFY(w.scheduleEditor() != nullptr);
     QVERIFY(w.controlPanel() != nullptr);
+    QVERIFY(w.roadmap() != nullptr);
     QVERIFY(w.tabWidget() != nullptr);
-    QCOMPARE(w.tabWidget()->count(), 3);
+    QCOMPARE(w.tabWidget()->count(), 4);
 
     // Each embedded panel window is hosted inside the tab container (its
     // direct parent is the tab widget's internal stack), and its central
@@ -99,9 +101,11 @@ void A2LayoutTests::t2_widgetEmbedding()
     QVERIFY(w.tabWidget()->isAncestorOf(w.dashboard()));
     QVERIFY(w.tabWidget()->isAncestorOf(w.scheduleEditor()));
     QVERIFY(w.tabWidget()->isAncestorOf(w.controlPanel()));
+    QVERIFY(w.tabWidget()->isAncestorOf(w.roadmap()));
     QCOMPARE(w.tabWidget()->indexOf(w.dashboard()), 0);
     QCOMPARE(w.tabWidget()->indexOf(w.scheduleEditor()), 1);
     QCOMPARE(w.tabWidget()->indexOf(w.controlPanel()), 2);
+    QCOMPARE(w.tabWidget()->indexOf(w.roadmap()), 3);
     QVERIFY(w.dashboard()->centralWidget() != nullptr);
     QVERIFY(w.scheduleEditor()->centralWidget() != nullptr);
     QVERIFY(w.controlPanel()->centralWidget() != nullptr);

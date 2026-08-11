@@ -19,6 +19,7 @@ class QTabWidget;
 class DashboardWindow;
 class ScheduleEditorWindow;
 class ControlPanelWindow;
+class RoadmapTab;
 class DemoAppContext;
 
 class DemoMainWindow : public QMainWindow
@@ -32,6 +33,7 @@ public:
     DashboardWindow *dashboard() const { return m_dashboard; }
     ScheduleEditorWindow *scheduleEditor() const { return m_schedule; }
     ControlPanelWindow *controlPanel() const { return m_control; }
+    RoadmapTab *roadmap() const { return m_roadmap; }
     QTabWidget *tabWidget() const { return m_tabs; }
 
     // Sprint 3 (A3): the single shared app context bound to all three panels.
@@ -51,6 +53,7 @@ private:
     DashboardWindow *m_dashboard;
     ScheduleEditorWindow *m_schedule;
     ControlPanelWindow *m_control;
+    RoadmapTab *m_roadmap;
     DemoAppContext *m_context;
 };
 

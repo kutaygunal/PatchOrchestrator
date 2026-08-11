@@ -119,6 +119,7 @@ if(Qt6_FOUND)
         ui/demo_mode_controller.cpp
         ui/demo_mode_bar.cpp
         ui/demo_script_parser.cpp
+        ui/roadmap_tab.cpp
         ui/dashboard.cpp
         ui/schedule_editor.cpp
         ui/control_panel.cpp

@@ -14,6 +14,7 @@
 #include "control_panel.hpp"
 #include "dashboard.hpp"
 #include "demo_app_context.hpp"
+#include "roadmap_tab.hpp"
 #include "schedule_editor.hpp"
 
 #include <QSettings>
@@ -36,6 +37,7 @@ DemoMainWindow::DemoMainWindow(QWidget *parent)
     , m_dashboard(nullptr)
     , m_schedule(nullptr)
     , m_control(nullptr)
+    , m_roadmap(nullptr)
     , m_context(nullptr)
 {
     setWindowTitle(QStringLiteral("PatchOrchestrator — Demo Hub"));
@@ -61,6 +63,28 @@ void DemoMainWindow::buildUi()
     m_schedule = new ScheduleEditorWindow(this);
     m_control = new ControlPanelWindow(this);
 
+    // Sprint 7 (A7): the roadmap/future-vision tab. It is populated with the
+    // project's future roadmap items (persistence, auth, real fleet
+    // integration, observability, multi-tenant).
+    m_roadmap = new RoadmapTab(this);
+    m_roadmap->setItems({
+        {QStringLiteral("Persistence"),
+         QStringLiteral("Persist schedules, rollout state, and layout across restarts."),
+         QStringLiteral("Planned"), QStringLiteral("Phase B")},
+        {QStringLiteral("Authentication"),
+         QStringLiteral("Add role-based access control for operator actions."),
+         QStringLiteral("Planned"), QStringLiteral("Phase B")},
+        {QStringLiteral("Real Fleet Integration"),
+         QStringLiteral("Connect the control plane to a live fleet via the engine bridge."),
+         QStringLiteral("In progress"), QStringLiteral("Phase B")},
+        {QStringLiteral("Observability"),
+         QStringLiteral("Stream live status and expose metrics for monitoring."),
+         QStringLiteral("Planned"), QStringLiteral("Phase C")},
+        {QStringLiteral("Multi-Tenant Support"),
+         QStringLiteral("Isolate fleets and schedules per tenant."),
+         QStringLiteral("Backlog"), QStringLiteral("Phase D")},
+    });
+
     // Sprint 3 (A3): create the single shared app context and bind it to all
     // three panels so they read/write the same state and react to changes.
     m_context = new DemoAppContext(this);
@@ -71,6 +95,7 @@ void DemoMainWindow::buildUi()
     m_tabs->addTab(m_dashboard, QStringLiteral("Dashboard"));
     m_tabs->addTab(m_schedule, QStringLiteral("Schedule Editor"));
     m_tabs->addTab(m_control, QStringLiteral("Control Panel"));
+    m_tabs->addTab(m_roadmap, QStringLiteral("Roadmap"));
 }
 
 QByteArray DemoMainWindow::saveLayout() const

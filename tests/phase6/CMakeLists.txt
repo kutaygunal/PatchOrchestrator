@@ -48,6 +48,7 @@ if(Qt6_FOUND)
         a2_layout_tests.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/demo_main_window.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/roadmap_tab.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/dashboard.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/schedule_editor.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/control_panel.cpp
@@ -79,6 +80,7 @@ if(Qt6_FOUND)
         a3_context_tests.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/demo_main_window.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/roadmap_tab.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/dashboard.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/schedule_editor.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/control_panel.cpp
@@ -189,5 +191,33 @@ if(Qt6_FOUND)
     add_test(NAME a6_integration
              COMMAND a6_demo_mode_bar_tests t4_integration)
     set_tests_properties(a6_buttons a6_indicator a6_narration a6_integration
+        PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+    # --- Sprint 7 (A7) Roadmap/Future tab tests (Qt Test) ------------------
+    # Builds RoadmapTab and runs the render, scroll, style, and empty-model
+    # tests offscreen.
+    add_executable(a7_roadmap_tab_tests
+        a7_roadmap_tab_tests.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/roadmap_tab.cpp
+    )
+    target_include_directories(a7_roadmap_tab_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
+    target_link_libraries(a7_roadmap_tab_tests PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
+    target_compile_features(a7_roadmap_tab_tests PRIVATE cxx_std_17)
+
+    if(MSVC)
+        target_compile_options(a7_roadmap_tab_tests PRIVATE /W4)
+    else()
+        target_compile_options(a7_roadmap_tab_tests PRIVATE -Wall -Wextra)
+    endif()
+
+    add_test(NAME a7_render
+             COMMAND a7_roadmap_tab_tests t1_rendersItems)
+    add_test(NAME a7_scroll
+             COMMAND a7_roadmap_tab_tests t2_scrollable)
+    add_test(NAME a7_style
+             COMMAND a7_roadmap_tab_tests t3_styled)
+    add_test(NAME a7_empty
+             COMMAND a7_roadmap_tab_tests t4_emptyModel)
+    set_tests_properties(a7_render a7_scroll a7_style a7_empty
         PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 endif()
