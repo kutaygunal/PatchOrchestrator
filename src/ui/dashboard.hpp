@@ -6,6 +6,7 @@
 #ifndef PATCHORCHESTRATOR_UI_DASHBOARD_HPP
 #define PATCHORCHESTRATOR_UI_DASHBOARD_HPP
 
+#include <QColor>
 #include <QMainWindow>
 #include <QNetworkAccessManager>
 #include <QTimer>
@@ -61,6 +62,17 @@ public:
     int progressBarCount() const;
     int progressBarValue(int row) const;
     int progressBarTarget(int row) const;
+
+    // Sprint 19 (C2): centralized state->color mapping (single source of
+    // truth). Maps each patch state to a color applied to rows/badges:
+    //   succeeded=green, failed=red, paused=amber, running=blue,
+    //   pending=grey, rolled_back=purple. Unknown/empty states map to a
+    //   defined default color (never crashes).
+    static QColor colorForState(const QString &state);
+
+    // Test accessor: the color currently applied to the state cell (badge)
+    // of the given row. Returns an invalid QColor if the row is out of range.
+    QColor rowStateColor(int row) const;
 
 protected:
     void closeEvent(QCloseEvent *event) override;

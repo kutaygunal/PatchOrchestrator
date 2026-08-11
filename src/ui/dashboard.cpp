@@ -45,7 +45,32 @@ QString envOr(const char *name, const QString &fallback)
     return QString::fromUtf8(value);
 }
 
+// Sprint 19 (C2): default color for unknown/empty states. Kept as a named
+// constant so the mapping below and the default branch stay in sync.
+const QColor kDefaultStateColor(0x9e, 0x9e, 0x9e);  // grey
+
 } // namespace
+
+// Sprint 19 (C2): centralized state->color mapping (single source of truth).
+// Every row/badge in the dashboard derives its color from this one function,
+// so a state always maps to the same color everywhere.
+QColor DashboardWindow::colorForState(const QString &state)
+{
+    if (state == QLatin1String("succeeded"))
+        return QColor(0x2e, 0x7d, 0x32);  // green
+    if (state == QLatin1String("failed"))
+        return QColor(0xc6, 0x28, 0x28);  // red
+    if (state == QLatin1String("paused"))
+        return QColor(0xf9, 0xa8, 0x25);  // amber
+    if (state == QLatin1String("running"))
+        return QColor(0x15, 0x65, 0xc0);  // blue
+    if (state == QLatin1String("pending"))
+        return QColor(0x9e, 0x9e, 0x9e);  // grey
+    if (state == QLatin1String("rolled_back"))
+        return QColor(0x6a, 0x1b, 0x9a);  // purple
+    // Unknown/empty states map to the defined default (grey) — no crash.
+    return kDefaultStateColor;
+}
 
 DashboardWindow::DashboardWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -123,6 +148,16 @@ int DashboardWindow::progressBarTarget(int row) const
     if (row < 0 || row >= m_progressBars.size() || m_progressBars[row] == nullptr)
         return -1;
     return m_progressBars[row]->target();
+}
+
+QColor DashboardWindow::rowStateColor(int row) const
+{
+    if (row < 0 || row >= m_table->rowCount())
+        return QColor();  // invalid
+    QTableWidgetItem *item = m_table->item(row, 1);  // State column
+    if (item == nullptr)
+        return QColor();  // invalid
+    return item->background().color();
 }
 
 // Graceful shutdown: stop the polling timer before the window is destroyed so
@@ -357,6 +392,13 @@ void DashboardWindow::populateTable(const QJsonArray &endpoints)
         auto *stateItem = new QTableWidgetItem(state);
         m_table->setItem(row, 0, idItem);
         m_table->setItem(row, 1, stateItem);
+
+        // Sprint 19 (C2): apply the state->color mapping to the state cell
+        // (badge). The color comes from the single source of truth so the same
+        // state always produces the same color across rows.
+        const QColor stateColor = colorForState(state);
+        stateItem->setBackground(stateColor);
+        stateItem->setForeground(QColor(Qt::white));
 
         // Sprint 18 (C1): animated progress bar per endpoint. Reuse the bar so
         // it animates from its current value to the new target instead of

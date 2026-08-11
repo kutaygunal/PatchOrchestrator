@@ -343,4 +343,32 @@ if(Qt6_FOUND)
              COMMAND c1_animated_progress_tests t4_regression)
     set_tests_properties(c1_animation_target c1_per_endpoint c1_target_change c1_regression
         PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+    # --- Sprint 19 (C2) color-coded state tests (Qt Test) ------------
+    # Builds the dashboard and runs the state->color mapping, applied-
+    # consistently, and regression tests offscreen.
+    add_executable(c2_color_state_tests
+        c2_color_state_tests.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/dashboard.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/animated_progress_bar.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
+    )
+    target_include_directories(c2_color_state_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
+    target_link_libraries(c2_color_state_tests PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
+    target_compile_features(c2_color_state_tests PRIVATE cxx_std_17)
+
+    if(MSVC)
+        target_compile_options(c2_color_state_tests PRIVATE /W4)
+    else()
+        target_compile_options(c2_color_state_tests PRIVATE -Wall -Wextra)
+    endif()
+
+    add_test(NAME c2_mapping
+             COMMAND c2_color_state_tests t1_stateColorMapping)
+    add_test(NAME c2_consistency
+             COMMAND c2_color_state_tests t2_appliedConsistently)
+    add_test(NAME c2_regression
+             COMMAND c2_color_state_tests t3_regression)
+    set_tests_properties(c2_mapping c2_consistency c2_regression
+        PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 endif()
