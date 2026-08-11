@@ -231,8 +231,7 @@ echo '{"endpoints":[{"id":"ep-1","failure_rate":0.1}],"seed":42}' | PYTHONPATH="
 
 ### End-to-end recipe
 
-A short copy-paste sequence to confirm the shared schedule behavior. The full verification
-checklist lives in `docs/p5-verify.md`.
+A short copy-paste sequence to confirm the shared schedule behavior.
 
 1. **Start the API** on `http://localhost:5000` (from the repo root):
 

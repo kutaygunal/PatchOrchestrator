@@ -27,3 +27,8 @@ obj/
 .vs/
 .idea/
 .vscode/
+
+# Stray per-phase build dirs + temp build artifacts
+/build.*/
+build.*.txt
+_rebuild_ui.*

@@ -12,10 +12,12 @@
 #include "log.hpp"
 #include "state_badge.hpp"
 
+#include <QAction>
 #include <QCloseEvent>
 #include <QDateTime>
 #include <QDockWidget>
 #include <QHeaderView>
+#include <QToolBar>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -102,6 +104,7 @@ DashboardWindow::DashboardWindow(QWidget *parent)
     , m_baseUrl(envOr("PATCHORCH_API_URL", QStringLiteral("http://localhost:5000")))
     , m_scheduleId(envOr("PATCHORCH_SCHEDULE_ID", QStringLiteral("sch-1")))
     , m_scheduleReady(false)
+    , m_scheduleExists(false)
     , m_context(nullptr)
     , m_streamReply(nullptr)
     , m_summary(nullptr)
@@ -259,6 +262,12 @@ void DashboardWindow::refreshNow()
 
 void DashboardWindow::buildUi()
 {
+    // P3+fix: a visible Refresh action re-runs schedule discovery so a newly
+    // created schedule (e.g. from the control panel) appears immediately.
+    auto *toolBar = addToolBar(QStringLiteral("Main"));
+    QAction *refreshAction = toolBar->addAction(QStringLiteral("Refresh"));
+    connect(refreshAction, &QAction::triggered, this, &DashboardWindow::refreshNow);
+
     // Sprint 21 (C4): fleet summary panel docked above the endpoint table.
     // It aggregates counts by state and the total, and updates whenever the
     // endpoint data changes (see populateTable).
@@ -319,12 +328,42 @@ void DashboardWindow::onSchedulesReply(QNetworkReply *reply)
     const QString envOverride =
         envOr("PATCHORCH_SCHEDULE_ID", QString());
     const QString resolved = resolveScheduleId(schedules, envOverride);
-    if (!resolved.isEmpty())
+    if (resolved.isEmpty()) {
+        // No schedules exist yet: keep the fallback id and only (re)load once.
+        m_scheduleExists = false;
+        if (!m_scheduleReady)
+            startWithSchedule();
+        return;
+    }
+    // Reload when the id changed, when the same id was overwritten (its
+    // "created" timestamp differs), or on the first ready pass. Without the
+    // overwrite check, re-scheduling the same id in the control panel would
+    // never refresh the fleet (the dashboard would keep showing stale data).
+    const QString resolvedCreated = scheduleCreated(schedules, resolved);
+    const bool idChanged = (resolved != m_scheduleId);
+    const bool overwritten = (!idChanged && !resolvedCreated.isEmpty()
+                              && resolvedCreated != m_lastCreated);
+    if (idChanged || overwritten || !m_scheduleReady) {
         m_scheduleId = resolved;
+        m_lastCreated = resolvedCreated;
+        // The schedule already exists on the API; the read-only dashboard must
+        // NOT re-POST it (that would overwrite the control panel's fleet).
+        m_scheduleExists = true;
+        PATCHORCH_LOG_INFO(QStringLiteral("Discovered schedule %1").arg(m_scheduleId));
+        setStatusMessage(QStringLiteral("Schedule %1 — loading fleet").arg(m_scheduleId));
+        startWithSchedule();
+    }
+}
 
-    PATCHORCH_LOG_INFO(QStringLiteral("Discovered schedule %1").arg(m_scheduleId));
-    setStatusMessage(QStringLiteral("Schedule %1 — loading fleet").arg(m_scheduleId));
-    startWithSchedule();
+QString DashboardWindow::scheduleCreated(const QJsonArray &schedules,
+                                         const QString &id) const
+{
+    for (const auto &value : schedules) {
+        const QJsonObject schedule = value.toObject();
+        if (schedule.value(QStringLiteral("id")).toString() == id)
+            return schedule.value(QStringLiteral("created")).toString();
+    }
+    return QString();
 }
 
 void DashboardWindow::startWithSchedule()
@@ -361,9 +400,24 @@ void DashboardWindow::onFleetReply(QNetworkReply *reply)
     const QJsonArray fleet =
         root.value(QStringLiteral("fleet")).toArray();
     m_fleet = fleet.isEmpty() ? kDefaultEndpoints : fleet;
+    // Persist the schedule's own seed so pollSimulate drives the same seed the
+    // control panel configured (instead of a hardcoded default).
+    m_currentSeed = root.value(QStringLiteral("seed")).toInt(kDefaultSeed);
     PATCHORCH_LOG_INFO(QStringLiteral("Loaded fleet of %1 endpoints for %2")
                            .arg(m_fleet.size()).arg(m_scheduleId));
-    ensureSchedule();
+    if (m_scheduleExists)
+        beginPolling(); // schedule already on the API: do not overwrite it
+    else
+        ensureSchedule();
+}
+
+void DashboardWindow::beginPolling()
+{
+    m_scheduleReady = true;
+    setStatusMessage(QStringLiteral("Schedule %1 ready").arg(m_scheduleId));
+    pollSimulate();
+    pollStatus();
+    startStatusStream();
 }
 
 void DashboardWindow::ensureSchedule()
@@ -394,12 +448,8 @@ void DashboardWindow::onCreateReply(QNetworkReply *reply)
                              .arg(reply->errorString()));
         return;
     }
-    m_scheduleReady = true;
     PATCHORCH_LOG_INFO(QStringLiteral("Schedule %1 ready").arg(m_scheduleId));
-    setStatusMessage(QStringLiteral("Schedule %1 ready").arg(m_scheduleId));
-    pollSimulate();
-    pollStatus();
-    startStatusStream();
+    beginPolling();
 }
 
 void DashboardWindow::startStatusStream()
@@ -481,6 +531,11 @@ void DashboardWindow::onPollTick()
     if (!m_scheduleReady) {
         return;
     }
+    // P3+fix: re-run discovery each tick so a new schedule created in the
+    // control panel is picked up automatically. onSchedulesReply only reloads
+    // when the resolved schedule actually changed, so this does not reset the
+    // current session needlessly.
+    discoverSchedules();
     pollSimulate();
     pollStatus();
 }
@@ -488,7 +543,7 @@ void DashboardWindow::onPollTick()
 void DashboardWindow::pollSimulate()
 {
     QJsonObject body;
-    body["seed"] = kDefaultSeed;
+    body["seed"] = m_currentSeed;
     // P3: drive the simulation with the discovered fleet (loaded from the
     // schedule's API detail) instead of a hardcoded ep-1/ep-2/ep-3 list.
     body["endpoints"] = m_fleet;

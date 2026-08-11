@@ -145,9 +145,13 @@ private slots:
 private:
     void buildUi();
     void discoverSchedules();
+    // Returns the "created" timestamp for the given schedule id, or empty if
+    // not present. Used to detect a same-id overwrite and force a reload.
+    QString scheduleCreated(const QJsonArray &schedules, const QString &id) const;
     void startWithSchedule();
     void fetchFleet();
     void ensureSchedule();
+    void beginPolling();
     void pollSimulate();
     void pollStatus();
     void populateTable(const QJsonArray &endpoints);
@@ -161,6 +165,9 @@ private:
     QString m_baseUrl;
     QString m_scheduleId;
     bool m_scheduleReady;
+    bool m_scheduleExists; // P3+fix: schedule came from the API (skip re-POST)
+    QString m_lastCreated; // last-seen "created" for m_scheduleId (reload on overwrite)
+    int m_currentSeed = 42; // schedule's persisted seed (used by pollSimulate)
     QJsonArray m_fleet; // P3: discovered fleet loaded from the API
     DemoAppContext *m_context;
 
