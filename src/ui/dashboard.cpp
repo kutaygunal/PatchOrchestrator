@@ -17,6 +17,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QList>
 #include <QNetworkReply>
 #include <QNetworkRequest>
 #include <QStatusBar>
@@ -155,6 +156,53 @@ QWidget *DashboardWindow::rowStateBadge(int row) const
     if (row < 0 || row >= m_table->rowCount())
         return nullptr;
     return m_table->cellWidget(row, 1);  // State column
+}
+
+// Sprint 22 (C5): rollout-stage grouping.
+void DashboardWindow::setStages(const QVector<RolloutStage> &stages)
+{
+    m_stages = stages;
+}
+
+int DashboardWindow::stageCount() const
+{
+    return m_stageRow.size();
+}
+
+QString DashboardWindow::stageHeaderText(int stageIndex) const
+{
+    if (stageIndex < 0 || stageIndex >= m_stageRow.size())
+        return QString();
+    QTableWidgetItem *item = m_table->item(m_stageRow[stageIndex], 0);
+    return item != nullptr ? item->text() : QString();
+}
+
+int DashboardWindow::stageProgress(int stageIndex) const
+{
+    if (stageIndex < 0 || stageIndex >= m_stageProgress.size())
+        return -1;
+    return m_stageProgress[stageIndex];
+}
+
+int DashboardWindow::stageEndpointCount(int stageIndex) const
+{
+    if (stageIndex < 0 || stageIndex >= m_stageEndpointCount.size())
+        return -1;
+    return m_stageEndpointCount[stageIndex];
+}
+
+int DashboardWindow::stageRow(int stageIndex) const
+{
+    if (stageIndex < 0 || stageIndex >= m_stageRow.size())
+        return -1;
+    return m_stageRow[stageIndex];
+}
+
+int DashboardWindow::endpointStageIndex(int row) const
+{
+    if (row < 0 || row >= m_endpointStage.size())
+        return -1;
+    return m_endpointStage[row];
 }
 
 // Graceful shutdown: stop the polling timer before the window is destroyed so
@@ -377,6 +425,18 @@ void DashboardWindow::onStatusReply(QNetworkReply *reply)
 
 void DashboardWindow::populateTable(const QJsonArray &endpoints)
 {
+    // Sprint 22 (C5): when rollout stages are set, group endpoints by stage
+    // with stage headers and per-stage progress. Otherwise keep the original
+    // flat table so P8/C1/C2/C3/C4 behavior is unchanged.
+    if (!m_stages.isEmpty()) {
+        populateGrouped(endpoints);
+        return;
+    }
+    populateFlat(endpoints);
+}
+
+void DashboardWindow::populateFlat(const QJsonArray &endpoints)
+{
     const int n = endpoints.size();
 
     // Shrink the per-endpoint bar vector first, detaching removed bars from
@@ -429,6 +489,126 @@ void DashboardWindow::populateTable(const QJsonArray &endpoints)
             m_table->setCellWidget(row, 2, bar);
         }
         bar->setTarget(static_cast<int>(progress));
+    }
+
+    // Sprint 22 (C5): in flat mode there is no stage grouping.
+    m_endpointStage.clear();
+}
+
+void DashboardWindow::populateGrouped(const QJsonArray &endpoints)
+{
+    // Bucket endpoints by stage. An endpoint belongs to a stage if its
+    // group_id is listed in that stage's group ids. Endpoints that match no
+    // stage go into an implicit "Ungrouped" group rendered last.
+    QVector<QList<int>> buckets(m_stages.size());
+    QList<int> ungrouped;
+    for (int i = 0; i < endpoints.size(); ++i) {
+        const QJsonObject ep = endpoints.at(i).toObject();
+        const QString groupId = ep.value(QStringLiteral("group_id")).toString();
+        int matched = -1;
+        for (int s = 0; s < m_stages.size(); ++s) {
+            if (m_stages[s].groupIds.contains(groupId)) {
+                matched = s;
+                break;
+            }
+        }
+        if (matched >= 0)
+            buckets[matched].append(i);
+        else
+            ungrouped.append(i);
+    }
+
+    // Ordered list of groups to render (stages in order, then ungrouped).
+    QVector<QList<int>> groups;
+    QVector<QString> groupNames;
+    for (int s = 0; s < m_stages.size(); ++s) {
+        groups.append(buckets[s]);
+        groupNames.append(m_stages[s].id);
+    }
+    if (!ungrouped.isEmpty()) {
+        groups.append(ungrouped);
+        groupNames.append(QStringLiteral("Ungrouped"));
+    }
+
+    // Total rows = one header per group + one row per endpoint.
+    int totalRows = 0;
+    for (const auto &g : groups)
+        totalRows += 1 + g.size();
+
+    // Detach any previously placed bars so they are not double-deleted.
+    for (int row = 0; row < m_progressBars.size(); ++row)
+        m_table->setCellWidget(row, 2, nullptr);
+    m_progressBars.clear();
+    m_progressBars.resize(totalRows);
+    m_table->setRowCount(totalRows);
+
+    // Keep the fleet summary in sync with the latest data.
+    if (m_summary != nullptr)
+        m_summary->setEndpoints(endpoints);
+
+    m_stageRow.clear();
+    m_stageEndpointCount.clear();
+    m_stageProgress.clear();
+    m_endpointStage.clear();
+    m_endpointStage.resize(totalRows, -1);
+
+    int row = 0;
+    for (int g = 0; g < groups.size(); ++g) {
+        const int count = groups[g].size();
+
+        // Per-stage progress = average progress of the stage's endpoints.
+        int progress = 0;
+        if (count > 0) {
+            int sum = 0;
+            for (int idx : groups[g])
+                sum += static_cast<int>(
+                    endpoints.at(idx).toObject()
+                        .value(QStringLiteral("progress")).toDouble());
+            progress = sum / count;
+        }
+
+        m_stageRow.append(row);
+        m_stageEndpointCount.append(count);
+        m_stageProgress.append(progress);
+
+        // Stage header spanning all columns.
+        auto *headerItem = new QTableWidgetItem(
+            QStringLiteral("%1 — %2 endpoints — Progress %3%")
+                .arg(groupNames[g]).arg(count).arg(progress));
+        headerItem->setBackground(QColor(0x33, 0x33, 0x33));
+        headerItem->setForeground(QColor(Qt::white));
+        headerItem->setFlags(headerItem->flags() & ~Qt::ItemIsEditable);
+        m_table->setItem(row, 0, headerItem);
+        m_table->setSpan(row, 0, 1, 3);
+        ++row;
+
+        // Endpoint rows for this stage.
+        for (int idx : groups[g]) {
+            const QJsonObject ep = endpoints.at(idx).toObject();
+            const QString id = ep.value(QStringLiteral("id")).toString();
+            const QString state = ep.value(QStringLiteral("state")).toString();
+            const double progressVal = ep.value(QStringLiteral("progress")).toDouble();
+
+            auto *idItem = new QTableWidgetItem(id);
+            auto *stateItem = new QTableWidgetItem(state);
+            m_table->setItem(row, 0, idItem);
+            m_table->setItem(row, 1, stateItem);
+
+            const QColor stateColor = colorForState(state);
+            stateItem->setBackground(stateColor);
+            stateItem->setForeground(QColor(Qt::white));
+
+            auto *badge = new StateBadge(state, m_table);
+            m_table->setCellWidget(row, 1, badge);
+
+            auto *bar = new AnimatedProgressBar(m_table);
+            m_progressBars[row] = bar;
+            m_table->setCellWidget(row, 2, bar);
+            bar->setTarget(static_cast<int>(progressVal));
+
+            m_endpointStage[row] = g;
+            ++row;
+        }
     }
 }
 

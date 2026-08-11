@@ -440,4 +440,36 @@ if(Qt6_FOUND)
              COMMAND c4_fleet_summary_tests t4_regression)
     set_tests_properties(c4_aggregation c4_total c4_updates c4_regression
         PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+    # --- Sprint 22 (C5) rollout-stage grouping tests (Qt Test) ------------
+    # Builds the dashboard and runs the grouping-logic, stage-header,
+    # per-stage-progress, and regression tests offscreen.
+    add_executable(c5_rollout_grouping_tests
+        c5_rollout_grouping_tests.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/dashboard.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/animated_progress_bar.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/state_badge.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/fleet_summary_panel.cpp
+    )
+    target_include_directories(c5_rollout_grouping_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
+    target_link_libraries(c5_rollout_grouping_tests PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
+    target_compile_features(c5_rollout_grouping_tests PRIVATE cxx_std_17)
+
+    if(MSVC)
+        target_compile_options(c5_rollout_grouping_tests PRIVATE /W4)
+    else()
+        target_compile_options(c5_rollout_grouping_tests PRIVATE -Wall -Wextra)
+    endif()
+
+    add_test(NAME c5_grouping
+             COMMAND c5_rollout_grouping_tests t1_grouping)
+    add_test(NAME c5_headers
+             COMMAND c5_rollout_grouping_tests t2_headers)
+    add_test(NAME c5_progress
+             COMMAND c5_rollout_grouping_tests t3_progress)
+    add_test(NAME c5_regression
+             COMMAND c5_rollout_grouping_tests t4_regression)
+    set_tests_properties(c5_grouping c5_headers c5_progress c5_regression
+        PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 endif()

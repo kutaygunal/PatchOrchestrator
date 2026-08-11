@@ -9,6 +9,7 @@
 #include <QColor>
 #include <QMainWindow>
 #include <QNetworkAccessManager>
+#include <QStringList>
 #include <QTimer>
 #include <QVector>
 
@@ -19,6 +20,16 @@ class QTableWidget;
 class DemoAppContext;
 class AnimatedProgressBar;
 class FleetSummaryPanel;
+
+// Sprint 22 (C5): a rollout stage (wave/group) as defined by the schedule
+// editor (P9). Each stage has an id, an order, and the set of group ids that
+// belong to it. Endpoints are grouped by stage in the dashboard.
+struct RolloutStage
+{
+    QString id;
+    int order = 0;
+    QStringList groupIds;
+};
 
 class DashboardWindow : public QMainWindow
 {
@@ -87,6 +98,20 @@ public:
     // after construction).
     FleetSummaryPanel *summaryPanel() const { return m_summary; }
 
+    // Sprint 22 (C5): rollout-stage grouping. Set the stages (from the
+    // schedule editor / P9) to group endpoints by stage with stage headers and
+    // per-stage progress. Passing an empty list disables grouping (flat table).
+    void setStages(const QVector<RolloutStage> &stages);
+    QVector<RolloutStage> stages() const { return m_stages; }
+
+    // C5 test accessors (grouped mode).
+    int stageCount() const;
+    QString stageHeaderText(int stageIndex) const;
+    int stageProgress(int stageIndex) const;
+    int stageEndpointCount(int stageIndex) const;
+    int stageRow(int stageIndex) const;
+    int endpointStageIndex(int row) const;
+
 protected:
     void closeEvent(QCloseEvent *event) override;
 
@@ -104,6 +129,8 @@ private:
     void pollSimulate();
     void pollStatus();
     void populateTable(const QJsonArray &endpoints);
+    void populateFlat(const QJsonArray &endpoints);
+    void populateGrouped(const QJsonArray &endpoints);
     void setStatusMessage(const QString &message);
 
     QTableWidget *m_table;
@@ -123,6 +150,13 @@ private:
 
     // Sprint 21 (C4): fleet summary panel aggregating counts by state.
     FleetSummaryPanel *m_summary;
+
+    // Sprint 22 (C5): rollout-stage grouping state.
+    QVector<RolloutStage> m_stages;
+    QVector<int> m_stageRow;           // table row of each stage header
+    QVector<int> m_stageEndpointCount; // endpoints per stage
+    QVector<int> m_stageProgress;      // aggregated progress per stage (0-100)
+    QVector<int> m_endpointStage;      // stage index per table row (-1 = header)
 };
 
 #endif // PATCHORCHESTRATOR_UI_DASHBOARD_HPP
