@@ -94,9 +94,9 @@ jobs:
           QT_BIN="${QT_ROOT}/bin"
           echo "Qt bin: ${QT_BIN}"
           for exe in \
-            build/Release/patchorchestrator_ui.exe \
-            build/Release/patchorchestrator_schedule_ui.exe \
-            build/Release/patchorchestrator_control_ui.exe; do
+            build/src/Release/patchorchestrator_ui.exe \
+            build/src/Release/patchorchestrator_schedule_ui.exe \
+            build/src/Release/patchorchestrator_control_ui.exe; do
             if [ -f "$exe" ]; then
               echo "windeployqt: $exe"
               "${QT_BIN}/windeployqt.exe" --no-translations --no-system-d3d-compiler "$exe" || echo "windeployqt warnings for $exe"
@@ -107,5 +107,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: patchorchestrator-windows-${{ env.BUILD_TYPE }}
-          path: build/Release/
-          if-no-files-found: warn
+          path: build/src/Release/
+          if-no-files-found: error
