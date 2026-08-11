@@ -33,6 +33,28 @@ public:
     void setPollIntervalMs(int ms);
     void refreshNow();
 
+    // Sprint 16 (B6): live reaction to pause/resume/rollback events.
+    //
+    // Opens the B5 SSE status stream (GET /api/schedules/{id}/status/stream)
+    // and re-renders the table immediately whenever a live state-change event
+    // arrives, in addition to (not instead of) the poll timer. This lets the
+    // dashboard react to pause/resume/rollback without waiting for the next
+    // poll tick.
+    void startStatusStream();
+
+    // Process a single status-stream event (a JSON object carrying "status"
+    // and/or "endpoints"). Public so tests can simulate an event arriving on
+    // the stream without a live server.
+    void handleStreamEvent(const QJsonObject &event);
+
+    // Test/control helpers: stop the poll timer and query its state.
+    void stopPolling();
+    bool isPolling() const { return m_timer.isActive(); }
+
+    // Test accessors for the rendered table.
+    int rowCount() const;
+    QString cellText(int row, int col) const;
+
 protected:
     void closeEvent(QCloseEvent *event) override;
 
@@ -41,6 +63,8 @@ private slots:
     void onSimulateReply(QNetworkReply *reply);
     void onStatusReply(QNetworkReply *reply);
     void onCreateReply(QNetworkReply *reply);
+    void onStreamReadyRead(QNetworkReply *reply);
+    void onStreamFinished(QNetworkReply *reply);
 
 private:
     void buildUi();
@@ -57,6 +81,10 @@ private:
     QString m_scheduleId;
     bool m_scheduleReady;
     DemoAppContext *m_context;
+
+    // Sprint 16 (B6): live status-stream state.
+    QNetworkReply *m_streamReply;
+    QByteArray m_streamBuffer;
 };
 
 #endif // PATCHORCHESTRATOR_UI_DASHBOARD_HPP

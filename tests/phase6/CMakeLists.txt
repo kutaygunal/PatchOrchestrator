@@ -251,4 +251,33 @@ if(Qt6_FOUND)
              COMMAND a8_roadmap_model_tests t4_invalidRejected)
     set_tests_properties(a8_parse a8_fields a8_render a8_invalid
         PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+    # --- Sprint 16 (B6) dashboard live-reaction tests (Qt Test) ------------
+    # Builds the dashboard and runs the event-triggered re-render, no-poll,
+    # multiple-events, and regression tests offscreen.
+    add_executable(b6_dashboard_live_tests
+        b6_dashboard_live_tests.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/dashboard.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
+    )
+    target_include_directories(b6_dashboard_live_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
+    target_link_libraries(b6_dashboard_live_tests PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
+    target_compile_features(b6_dashboard_live_tests PRIVATE cxx_std_17)
+
+    if(MSVC)
+        target_compile_options(b6_dashboard_live_tests PRIVATE /W4)
+    else()
+        target_compile_options(b6_dashboard_live_tests PRIVATE -Wall -Wextra)
+    endif()
+
+    add_test(NAME b6_event_rerender
+             COMMAND b6_dashboard_live_tests t1_eventTriggersRerender)
+    add_test(NAME b6_no_poll
+             COMMAND b6_dashboard_live_tests t2_noRelianceOnPollTimer)
+    add_test(NAME b6_multiple_events
+             COMMAND b6_dashboard_live_tests t3_multipleEvents)
+    add_test(NAME b6_regression
+             COMMAND b6_dashboard_live_tests t4_regression)
+    set_tests_properties(b6_event_rerender b6_no_poll b6_multiple_events b6_regression
+        PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 endif()

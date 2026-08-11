@@ -53,6 +53,7 @@ DashboardWindow::DashboardWindow(QWidget *parent)
     , m_scheduleId(envOr("PATCHORCH_SCHEDULE_ID", QStringLiteral("sch-1")))
     , m_scheduleReady(false)
     , m_context(nullptr)
+    , m_streamReply(nullptr)
 {
     setWindowTitle(QStringLiteral("PatchOrchestrator — Dashboard"));
     resize(720, 420);
@@ -86,6 +87,22 @@ void DashboardWindow::setContext(DemoAppContext *context)
 void DashboardWindow::setPollIntervalMs(int ms)
 {
     m_timer.setInterval(ms);
+}
+
+void DashboardWindow::stopPolling()
+{
+    m_timer.stop();
+}
+
+int DashboardWindow::rowCount() const
+{
+    return m_table->rowCount();
+}
+
+QString DashboardWindow::cellText(int row, int col) const
+{
+    QTableWidgetItem *item = m_table->item(row, col);
+    return item != nullptr ? item->text() : QString();
 }
 
 // Graceful shutdown: stop the polling timer before the window is destroyed so
@@ -148,6 +165,81 @@ void DashboardWindow::onCreateReply(QNetworkReply *reply)
     setStatusMessage(QStringLiteral("Schedule %1 ready").arg(m_scheduleId));
     pollSimulate();
     pollStatus();
+    startStatusStream();
+}
+
+void DashboardWindow::startStatusStream()
+{
+    // Open the B5 SSE stream. It emits one event per live state change
+    // (pause/resume/rollback/tick) plus a baseline event on open. Each event
+    // carries "status" and "endpoints", which we use to re-render immediately.
+    QNetworkRequest request(
+        QUrl(m_baseUrl + QStringLiteral("/api/schedules/") + m_scheduleId +
+             QStringLiteral("/status/stream")));
+    QNetworkReply *reply = m_net.get(request);
+    connect(reply, &QNetworkReply::readyRead, this, [this, reply]() {
+        onStreamReadyRead(reply);
+    });
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        onStreamFinished(reply);
+    });
+    m_streamReply = reply;
+    PATCHORCH_LOG_INFO(QStringLiteral("Status stream opened for %1").arg(m_scheduleId));
+}
+
+void DashboardWindow::onStreamReadyRead(QNetworkReply *reply)
+{
+    m_streamBuffer += reply->readAll();
+
+    // SSE events are terminated by a blank line ("\n\n"). Process each
+    // complete event as it arrives.
+    int pos;
+    while ((pos = m_streamBuffer.indexOf("\n\n")) != -1) {
+        const QByteArray block = m_streamBuffer.left(pos);
+        m_streamBuffer.remove(0, pos + 2);
+
+        const QList<QByteArray> lines = block.split('\n');
+        for (const QByteArray &line : lines) {
+            if (!line.startsWith("data:"))
+                continue;
+            const QByteArray payload = line.mid(5).trimmed();
+            const QJsonDocument doc = QJsonDocument::fromJson(payload);
+            if (doc.isObject()) {
+                handleStreamEvent(doc.object());
+            }
+        }
+    }
+}
+
+void DashboardWindow::onStreamFinished(QNetworkReply *reply)
+{
+    // The stream ended (server closed or network error). Flush any remaining
+    // buffered data, then drop the reply. The poll timer continues to provide
+    // updates, so the dashboard keeps working without the stream.
+    if (m_streamReply == reply)
+        m_streamReply = nullptr;
+    reply->deleteLater();
+    PATCHORCH_LOG_WARN(QStringLiteral("Status stream closed for %1").arg(m_scheduleId));
+}
+
+void DashboardWindow::handleStreamEvent(const QJsonObject &event)
+{
+    // Re-render the endpoint table immediately from the event payload.
+    const QJsonArray endpoints = event.value(QStringLiteral("endpoints")).toArray();
+    if (!endpoints.isEmpty()) {
+        populateTable(endpoints);
+    }
+
+    // Reflect the derived schedule status into the shared context and status bar.
+    const QString status = event.value(QStringLiteral("status")).toString();
+    if (!status.isEmpty()) {
+        if (m_context != nullptr)
+            m_context->setRolloutState(status);
+        setStatusMessage(QStringLiteral("Schedule %1 — status: %2").arg(m_scheduleId, status));
+    }
+
+    PATCHORCH_LOG_DEBUG(QStringLiteral("Stream event: status=%1 endpoints=%2")
+                            .arg(status).arg(endpoints.size()));
 }
 
 void DashboardWindow::onPollTick()
