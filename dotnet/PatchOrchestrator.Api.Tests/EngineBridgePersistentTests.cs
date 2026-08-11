@@ -42,11 +42,39 @@ public class EngineBridgePersistentTests
 
         bridge.Run(SampleRequest);
         bridge.Run(SampleRequest);
-        bridge.GetState();
 
         Assert.Equal(1, bridge.ProcessStartCount);
         Assert.Equal(firstPid, bridge.ProcessId);
         Assert.True(bridge.IsProcessRunning);
+    }
+
+    // ---- T5: "run" must not leak into live session state (regression) ----
+    //
+    // "run" is a one-shot, stateless "simulate to completion" used by the
+    // read-only dashboard's poll loop. It must never replace the live session
+    // rollout that "start" establishes and that pause/resume/rollback/tick
+    // mutate in place — both Qt apps (control panel and dashboard) share this
+    // one persistent subprocess, so if "run" clobbered the session, every
+    // dashboard poll would silently reset the control panel's live rollout.
+    [Fact]
+    public void B1_RunDoesNotAffectSession_RunIsIsolatedFromLiveSession()
+    {
+        using var bridge = new EngineBridge();
+
+        // No session started yet: GetState() must report "no active rollout",
+        // regardless of how many one-shot "run" calls preceded it.
+        bridge.Run(SampleRequest);
+        bridge.Run(SampleRequest);
+        Assert.Throws<InvalidOperationException>(() => bridge.GetState());
+
+        // Start a live session, then interleave "run" calls (as the
+        // dashboard's poll loop does) with live session mutations (as the
+        // control panel does). The live session must be unaffected by "run".
+        bridge.Start(SampleRequest);
+        bridge.Pause();
+        bridge.Run(SampleRequest); // dashboard poll tick, must not disturb the session
+        var state = bridge.GetState();
+        Assert.All(state.Endpoints, e => Assert.Equal("paused", e.State));
     }
 
     // ---- T2: State persists between calls ----

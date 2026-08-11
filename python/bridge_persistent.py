@@ -87,8 +87,16 @@ def _handle(req, rollout):
     """Dispatch a single request. Returns the (possibly new) rollout."""
     cmd = req.get("cmd")
     if cmd == "run":
-        rollout = _build_rollout(req).simulate()
-        _respond({"ok": True, **_state(rollout)})
+        # One-shot "simulate to completion" (used by the read-only dashboard's
+        # poll loop). This must NOT replace the live session `rollout` that
+        # "start" established and that pause/resume/rollback/tick mutate in
+        # place — this subprocess is shared by both Qt apps (control panel and
+        # dashboard) through one persistent bridge, so reassigning `rollout`
+        # here used to silently reset/clobber the control panel's live rollout
+        # on every dashboard poll tick. Use a throwaway rollout instead and
+        # leave the session's `rollout` (if any) untouched.
+        scratch = _build_rollout(req).simulate()
+        _respond({"ok": True, **_state(scratch)})
     elif cmd == "start":
         rollout = _build_rollout(req)
         rollout.start()
