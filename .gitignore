@@ -28,6 +28,9 @@ obj/
 .idea/
 .vscode/
 
+# Claude Code local-only permission grants (per-session, not shared)
+.claude/settings.local.json
+
 # Stray per-phase build dirs + temp build artifacts
 /build.*/
 build.*.txt
