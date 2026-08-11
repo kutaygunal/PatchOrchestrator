@@ -51,6 +51,7 @@ if(Qt6_FOUND)
     add_executable(patchorchestrator_ui
         ui/dashboard_main.cpp
         ui/dashboard.cpp
+        ui/demo_app_context.cpp
     )
     target_link_libraries(patchorchestrator_ui PRIVATE Qt6::Widgets Qt6::Network)
     target_compile_features(patchorchestrator_ui PRIVATE cxx_std_17)
@@ -72,6 +73,7 @@ if(Qt6_FOUND)
     add_executable(patchorchestrator_schedule_ui
         ui/schedule_main.cpp
         ui/schedule_editor.cpp
+        ui/demo_app_context.cpp
     )
     target_link_libraries(patchorchestrator_schedule_ui PRIVATE Qt6::Widgets Qt6::Network)
     target_compile_features(patchorchestrator_schedule_ui PRIVATE cxx_std_17)
@@ -94,6 +96,7 @@ if(Qt6_FOUND)
     add_executable(patchorchestrator_control_ui
         ui/control_main.cpp
         ui/control_panel.cpp
+        ui/demo_app_context.cpp
     )
     target_link_libraries(patchorchestrator_control_ui PRIVATE Qt6::Widgets Qt6::Network)
     target_compile_features(patchorchestrator_control_ui PRIVATE cxx_std_17)
