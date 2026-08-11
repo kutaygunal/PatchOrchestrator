@@ -12,15 +12,19 @@
 #include "demo_app_context.hpp"
 #include "timestamp_format.hpp"
 
+#include <QFile>
 #include <QHeaderView>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QNetworkReply>
 #include <QNetworkRequest>
+#include <QPushButton>
 #include <QTableWidget>
+#include <QTextStream>
 #include <QUrl>
 #include <QVBoxLayout>
+#include <QHBoxLayout>
 
 namespace {
 
@@ -31,12 +35,23 @@ constexpr int kDefaultRefreshIntervalMs = 2000;
 AuditLogPanel::AuditLogPanel(QWidget *parent)
     : QWidget(parent)
     , m_table(nullptr)
+    , m_exportButton(nullptr)
     , m_baseUrl(QStringLiteral("http://localhost:5000"))
     , m_scheduleId(QStringLiteral("sch-1"))
     , m_context(nullptr)
 {
     auto *layout = new QVBoxLayout(this);
     layout->setContentsMargins(8, 8, 8, 8);
+
+    // Sprint 38 (E7): a small toolbar row with the Export button.
+    auto *toolbar = new QHBoxLayout;
+    m_exportButton = new QPushButton(QStringLiteral("Export"), this);
+    m_exportButton->setObjectName(QStringLiteral("exportButton"));
+    toolbar->addStretch(1);
+    toolbar->addWidget(m_exportButton);
+    layout->addLayout(toolbar);
+    connect(m_exportButton, &QPushButton::clicked, this,
+            &AuditLogPanel::onExportClicked);
 
     m_table = new QTableWidget(0, ColumnCount, this);
     m_table->setHorizontalHeaderLabels(
@@ -58,6 +73,7 @@ AuditLogPanel::AuditLogPanel(QWidget *parent)
 
 void AuditLogPanel::setLog(const QList<AuditLogEntry> &entries)
 {
+    m_entries = entries;
     m_table->setRowCount(0);
     for (const AuditLogEntry &entry : entries)
         appendRow(entry);
@@ -65,6 +81,7 @@ void AuditLogPanel::setLog(const QList<AuditLogEntry> &entries)
 
 void AuditLogPanel::appendEntry(const AuditLogEntry &entry)
 {
+    m_entries.append(entry);
     appendRow(entry);
 }
 
@@ -213,4 +230,59 @@ void AuditLogPanel::appendRow(const AuditLogEntry &entry)
         item->setFlags(item->flags() & ~Qt::ItemIsEditable);
         m_table->setItem(row, col, item);
     }
+}
+
+// --- Sprint 38 (E7): log export --------------------------------------------
+
+namespace {
+
+// Quote and escape a single CSV field: wrap in double quotes if it contains a
+// comma, quote, newline, or CR; double any embedded double quotes.
+QString csvEscape(const QString &field)
+{
+    if (!field.contains(QLatin1Char(',')) &&
+        !field.contains(QLatin1Char('"')) &&
+        !field.contains(QLatin1Char('\n')) &&
+        !field.contains(QLatin1Char('\r'))) {
+        return field;
+    }
+
+    QString escaped = field;
+    escaped.replace(QLatin1Char('"'), QStringLiteral("\"\""));
+    return QLatin1Char('"') + escaped + QLatin1Char('"');
+}
+
+} // namespace
+
+bool AuditLogPanel::exportToFile(const QString &filePath)
+{
+    QFile file(filePath);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
+        return false;
+
+    QTextStream out(&file);
+    // Header row.
+    out << csvEscape(QStringLiteral("action")) << QLatin1Char(',')
+        << csvEscape(QStringLiteral("target")) << QLatin1Char(',')
+        << csvEscape(QStringLiteral("timestamp")) << QLatin1Char(',')
+        << csvEscape(QStringLiteral("result")) << QLatin1Char('\n');
+
+    // One row per entry with all fields, in the stored (source-of-truth) order.
+    for (const AuditLogEntry &entry : m_entries) {
+        out << csvEscape(entry.action) << QLatin1Char(',')
+            << csvEscape(entry.target) << QLatin1Char(',')
+            << csvEscape(entry.timestamp) << QLatin1Char(',')
+            << csvEscape(entry.result) << QLatin1Char('\n');
+    }
+    out.flush();
+
+    return file.error() == QFileDevice::NoError;
+}
+
+void AuditLogPanel::onExportClicked()
+{
+    // Live-app path: ask the user where to save, then export. Tests call
+    // exportToFile directly with an explicit path, so no dialog is shown here
+    // when the path comes from a test.
+    exportToFile(QStringLiteral("audit_log.csv"));
 }

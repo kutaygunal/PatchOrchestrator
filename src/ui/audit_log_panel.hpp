@@ -21,6 +21,7 @@
 #include <QWidget>
 
 class QNetworkReply;
+class QPushButton;
 class QTableWidget;
 class DemoAppContext;
 
@@ -99,20 +100,43 @@ public:
     // Alias for tests that expect a logRowCount accessor.
     int logRowCount() const { return rowCount(); }
 
+    // --- Sprint 38 (E7): log export ----------------------------------------
+    //
+    // Exports the current log entries to the given file path as CSV (header +
+    // one row per entry: action, target, timestamp, result). Fields are quoted
+    // and escaped so commas, quotes, and newlines in the data stay valid CSV.
+    // The method is directly callable by tests with an explicit path; in the
+    // live app the Export button opens a QFileDialog and calls this method.
+    // Returns true on success, false if the file could not be written.
+    bool exportToFile(const QString &filePath);
+
+    // Test accessor: the Export push button (objectName "exportButton").
+    QPushButton *exportButton() const { return m_exportButton; }
+
+    // Test accessor: the raw stored log entries (source of truth for export,
+    // independent of the formatted table).
+    QList<AuditLogEntry> entries() const { return m_entries; }
+
 private slots:
     void onPollTick();
     void onActionsReply(QNetworkReply *reply);
+    void onExportClicked();
 
 private:
     void fetchActions();
     void appendRow(const AuditLogEntry &entry);
 
     QTableWidget *m_table;
+    QPushButton *m_exportButton;
     QNetworkAccessManager m_net;
     QTimer m_timer;
     QString m_baseUrl;
     QString m_scheduleId;
     DemoAppContext *m_context;
+
+    // Source-of-truth copy of the log entries, kept in sync by setLog and
+    // appendEntry so export does not depend on parsing the formatted table.
+    QList<AuditLogEntry> m_entries;
 };
 
 #endif // PATCHORCHESTRATOR_UI_AUDIT_LOG_PANEL_HPP

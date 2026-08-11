@@ -1332,4 +1332,87 @@ if(Qt6_FOUND)
              COMMAND e6_regression)
     set_tests_properties(e6_regression
         PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+    # --- Sprint 38 (E7) log export tests (Qt Test) -------------------------
+    # Builds the AuditLogPanel plus the shared context and runs the export
+    # format/content, valid-CSV, and regression tests offscreen. Exports are
+    # written to a temp path and read back to assert validity.
+    add_executable(e7_export
+        e7_export_tests.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/audit_log_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/timestamp_format.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
+    )
+    target_include_directories(e7_export PRIVATE ${CMAKE_SOURCE_DIR}/src)
+    target_link_libraries(e7_export PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
+    target_compile_features(e7_export PRIVATE cxx_std_17)
+
+    if(MSVC)
+        target_compile_options(e7_export PRIVATE /W4)
+    else()
+        target_compile_options(e7_export PRIVATE -Wall -Wextra)
+    endif()
+
+    add_test(NAME e7_export
+             COMMAND e7_export)
+    set_tests_properties(e7_export
+        PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+    add_executable(e7_valid
+        e7_valid_tests.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/audit_log_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/timestamp_format.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
+    )
+    target_include_directories(e7_valid PRIVATE ${CMAKE_SOURCE_DIR}/src)
+    target_link_libraries(e7_valid PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
+    target_compile_features(e7_valid PRIVATE cxx_std_17)
+
+    if(MSVC)
+        target_compile_options(e7_valid PRIVATE /W4)
+    else()
+        target_compile_options(e7_valid PRIVATE -Wall -Wextra)
+    endif()
+
+    add_test(NAME e7_valid
+             COMMAND e7_valid)
+    set_tests_properties(e7_valid
+        PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+    add_executable(e7_regression
+        e7_regression_tests.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/audit_log_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/timestamp_format.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_main_window.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/roadmap_tab.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/roadmap_model.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/dashboard.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/animated_progress_bar.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/schedule_editor.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/control_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/scenario_presets.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/scenario_selector.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/config_validator.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/state_badge.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/fleet_summary_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/dashboard_legend.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/fleet_size_control.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/failure_rate_control.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/seed_control.cpp
+    )
+    target_include_directories(e7_regression PRIVATE ${CMAKE_SOURCE_DIR}/src)
+    target_link_libraries(e7_regression PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
+    target_compile_features(e7_regression PRIVATE cxx_std_17)
+
+    if(MSVC)
+        target_compile_options(e7_regression PRIVATE /W4)
+    else()
+        target_compile_options(e7_regression PRIVATE -Wall -Wextra)
+    endif()
+
+    add_test(NAME e7_regression
+             COMMAND e7_regression)
+    set_tests_properties(e7_regression
+        PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 endif()
