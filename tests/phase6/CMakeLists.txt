@@ -220,4 +220,33 @@ if(Qt6_FOUND)
              COMMAND a7_roadmap_tab_tests t4_emptyModel)
     set_tests_properties(a7_render a7_scroll a7_style a7_empty
         PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+    # --- Sprint 8 (A8) roadmap content model tests (Qt Test) --------------
+    # Builds the A8 content model plus RoadmapTab and runs the parse/load,
+    # field-access, render-all-items, and invalid-source tests offscreen.
+    add_executable(a8_roadmap_model_tests
+        a8_roadmap_model_tests.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/roadmap_model.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/roadmap_tab.cpp
+    )
+    target_include_directories(a8_roadmap_model_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
+    target_link_libraries(a8_roadmap_model_tests PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
+    target_compile_features(a8_roadmap_model_tests PRIVATE cxx_std_17)
+
+    if(MSVC)
+        target_compile_options(a8_roadmap_model_tests PRIVATE /W4)
+    else()
+        target_compile_options(a8_roadmap_model_tests PRIVATE -Wall -Wextra)
+    endif()
+
+    add_test(NAME a8_parse
+             COMMAND a8_roadmap_model_tests t1_parsesLoads)
+    add_test(NAME a8_fields
+             COMMAND a8_roadmap_model_tests t2_fieldAccess)
+    add_test(NAME a8_render
+             COMMAND a8_roadmap_model_tests t3_rendersAllItems)
+    add_test(NAME a8_invalid
+             COMMAND a8_roadmap_model_tests t4_invalidRejected)
+    set_tests_properties(a8_parse a8_fields a8_render a8_invalid
+        PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 endif()

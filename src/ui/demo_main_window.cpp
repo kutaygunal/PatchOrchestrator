@@ -14,6 +14,7 @@
 #include "control_panel.hpp"
 #include "dashboard.hpp"
 #include "demo_app_context.hpp"
+#include "roadmap_model.hpp"
 #include "roadmap_tab.hpp"
 #include "schedule_editor.hpp"
 
@@ -63,27 +64,16 @@ void DemoMainWindow::buildUi()
     m_schedule = new ScheduleEditorWindow(this);
     m_control = new ControlPanelWindow(this);
 
-    // Sprint 7 (A7): the roadmap/future-vision tab. It is populated with the
-    // project's future roadmap items (persistence, auth, real fleet
-    // integration, observability, multi-tenant).
+    // Sprint 7/8 (A7/A8): the roadmap/future-vision tab. It is populated from
+    // the A8 roadmap content model (a declarative JSON source) instead of a
+    // hardcoded inline list. The model loads the project's future roadmap
+    // items (persistence, auth, real fleet integration, observability,
+    // multi-tenant) and feeds them to RoadmapTab via setItems().
     m_roadmap = new RoadmapTab(this);
-    m_roadmap->setItems({
-        {QStringLiteral("Persistence"),
-         QStringLiteral("Persist schedules, rollout state, and layout across restarts."),
-         QStringLiteral("Planned"), QStringLiteral("Phase B")},
-        {QStringLiteral("Authentication"),
-         QStringLiteral("Add role-based access control for operator actions."),
-         QStringLiteral("Planned"), QStringLiteral("Phase B")},
-        {QStringLiteral("Real Fleet Integration"),
-         QStringLiteral("Connect the control plane to a live fleet via the engine bridge."),
-         QStringLiteral("In progress"), QStringLiteral("Phase B")},
-        {QStringLiteral("Observability"),
-         QStringLiteral("Stream live status and expose metrics for monitoring."),
-         QStringLiteral("Planned"), QStringLiteral("Phase C")},
-        {QStringLiteral("Multi-Tenant Support"),
-         QStringLiteral("Isolate fleets and schedules per tenant."),
-         QStringLiteral("Backlog"), QStringLiteral("Phase D")},
-    });
+    RoadmapModel::Result roadmap = RoadmapModel::loadFile(QStringLiteral("roadmap.json"));
+    if (!roadmap.ok)
+        roadmap = RoadmapModel::defaultItems();
+    m_roadmap->setItems(roadmap.items);
 
     // Sprint 3 (A3): create the single shared app context and bind it to all
     // three panels so they read/write the same state and react to changes.

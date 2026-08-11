@@ -1,0 +1,34 @@
+{
+  "items": [
+    {
+      "title": "Persistence",
+      "description": "Persist schedules, rollout state, and layout across restarts.",
+      "status": "Planned",
+      "targetPhase": "Phase B"
+    },
+    {
+      "title": "Authentication",
+      "description": "Add role-based access control for operator actions.",
+      "status": "Planned",
+      "targetPhase": "Phase B"
+    },
+    {
+      "title": "Real Fleet Integration",
+      "description": "Connect the control plane to a live fleet via the engine bridge.",
+      "status": "In progress",
+      "targetPhase": "Phase B"
+    },
+    {
+      "title": "Observability",
+      "description": "Stream live status and expose metrics for monitoring.",
+      "status": "Planned",
+      "targetPhase": "Phase C"
+    },
+    {
+      "title": "Multi-Tenant Support",
+      "description": "Isolate fleets and schedules per tenant.",
+      "status": "Backlog",
+      "targetPhase": "Phase D"
+    }
+  ]
+}

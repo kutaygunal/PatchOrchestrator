@@ -120,6 +120,7 @@ if(Qt6_FOUND)
         ui/demo_mode_bar.cpp
         ui/demo_script_parser.cpp
         ui/roadmap_tab.cpp
+        ui/roadmap_model.cpp
         ui/dashboard.cpp
         ui/schedule_editor.cpp
         ui/control_panel.cpp
@@ -130,6 +131,14 @@ if(Qt6_FOUND)
     target_compile_definitions(patchorchestrator_demo PRIVATE PATCHORCHESTRATOR_VERSION="0.1.0")
 
     install(TARGETS patchorchestrator_demo RUNTIME DESTINATION bin)
+
+    # Copy the declarative roadmap source next to the demo executable so the
+    # A8 content model loads the real JSON file at runtime (falling back to the
+    # built-in default if the file is absent).
+    add_custom_command(TARGET patchorchestrator_demo POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${CMAKE_CURRENT_SOURCE_DIR}/ui/roadmap.json
+            $<TARGET_FILE_DIR:patchorchestrator_demo>/roadmap.json)
 else()
     message(WARNING "Qt6 Widgets/Network not found — skipping patchorchestrator_demo target.")
 endif()
