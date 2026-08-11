@@ -1,5 +1,5 @@
 # Loop State (compact mirror)
 
-- Current phase: P5 (Build + end-to-end verify) — IN PROGRESS
-- Last result: P2/P3/P4 DONE/pushed (3816de9). Scrum-master assigned P5 to `senior-engineer-p5`; wrote `docs/p5-verify.md` (rebuild all targets, start API on :5000, run both UIs, schedule in control panel, confirm dashboard auto-discovery).
-- Phases: P1–P4 DONE; P5 IN PROGRESS; P6 pending (see PLAN.md)
+- Current phase: P6 (Docs) — IN PROGRESS (final phase)
+- Last result: P5 DONE/pushed (445d18e). Scrum-master assigned P6 to `senior-engineer-p6`; wrote `docs/p6-task.md` (update README run instructions for the shared schedule behavior).
+- Phases: P1–P5 DONE; P6 IN PROGRESS (see PLAN.md)

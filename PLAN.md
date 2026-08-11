@@ -37,7 +37,7 @@ One authoritative fleet definition per schedule, stored server-side, read by bot
 | 3 | Dashboard: auto-discover fleet | Remove hardcoded endpoints; on startup/refresh call `GET /api/schedules`, pick latest (or env override), load its fleet | High | DONE | senior-engineer-p3 | p3_dashboard_discovery_tests.cpp | yes |
 | 4 | Tests | API integration tests (list + stored fleet + ordering); control-panel payload test; dashboard discovery logic test | High | DONE | scrum-master | P1ApiTests + p2 + p3 suites | yes |
 | 5 | Build + end-to-end verify | Rebuild all targets; run both UIs; confirm scheduling in the control panel appears in the dashboard | High | DONE | senior-engineer-p5 | docs/p5-verify.md | Verified: schedule e2e-1 (fleet 5/0.4/seed 123) created via control panel; dashboard auto-discovered e2e-1 + rendered 5 endpoints (ep-1..ep-5) from API; no hardcoded endpoints |
-| 6 | Docs | Update README run instructions to describe the shared schedule behavior | Low | NOT STARTED | | | |
+| 6 | Docs | Update README run instructions to describe the shared schedule behavior | Low | IN PROGRESS | senior-engineer-p6 | docs/p6-task.md | |
 
 ## Dependencies / notes
 

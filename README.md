@@ -23,6 +23,7 @@ endpoints with their patch state and progress, polled live from the .NET API.*
   - [C++/Qt GUI](#cppqt-gui)
   - [.NET REST API](#net-rest-api)
   - [Python simulation engine](#python-simulation-engine)
+  - [End-to-end recipe](#end-to-end-recipe)
 - [Testing](#testing)
 - [Packaging & release](#packaging--release)
 - [NinjaOne career relevance](#ninjaone-career-relevance)
@@ -51,6 +52,14 @@ recover a software patch rollout across a fleet of endpoints:
 Everything flows in one direction: the GUI calls the API, the API bridges to the engine, and
 the engine's deterministic results come back to be rendered in the GUI.
 
+The **shared source of truth** is the API's schedule store. When the operator clicks
+**Schedule** in the control panel, the panel POSTs the configured fleet
+(`fleetSize`, `failureRate`, `seed`) to `POST /api/schedules`; the API persists that fleet.
+The dashboard reads `GET /api/schedules`, **auto-selects the most recently created schedule**
+and loads that schedule's fleet from the API detail (`GET /api/schedules/{id}`) — so a job
+scheduled in the control panel appears in the dashboard automatically, with no manual pointing
+and no hardcoded endpoints.
+
 ---
 
 ## Architecture
@@ -69,8 +78,8 @@ the engine's deterministic results come back to be rendered in the GUI.
                      │            .NET REST API                           │
                      │  dotnet/PatchOrchestrator.Api/                     │
                      │  • /api/health                                     │
-                     │  • /api/schedules            (create)              │
-                     │  • /api/schedules/{id}/simulate                    │
+                     │  • /api/schedules  (create + list, newest-first)  │
+                     │  • /api/schedules/{id}  (detail: stored fleet)   │
                      │  • /api/schedules/{id}/pause|resume|rollback       │
                      │  • /api/schedules/{id}/status                      │
                      │  • EngineBridge (subprocess JSON bridge)           │
@@ -97,6 +106,10 @@ the engine's deterministic results come back to be rendered in the GUI.
    per-endpoint state and progress.
 5. The API deserializes the result and returns it over HTTP; the **Qt GUI** refreshes its
    table and status bar.
+6. The control panel sends the configured fleet to `POST /api/schedules`; the API persists
+   it as the schedule's source of truth. The dashboard auto-selects the **newest** schedule
+   from `GET /api/schedules` (unless `PATCHORCH_SCHEDULE_ID` overrides it) and renders that
+   schedule's fleet from `GET /api/schedules/{id}`.
 
 Because the engine is deterministic (fixed seed → fixed result), the whole system is easy to
 test and reproduce — a key property for a patching control plane.
@@ -141,10 +154,35 @@ This produces the executables under `build/src/Release/`:
 - `patchorchestrator_schedule_ui.exe` — schedule-definition editor.
 - `patchorchestrator_control_ui.exe` — control panel (Schedule/Pause/Resume/Rollback).
 
-The dashboard GUI expects the .NET API to be running (see below). You can configure the API
-base URL and schedule id via environment variables:
+Both GUIs expect the .NET API to be running (see below). Each reads its base URL from
+`PATCHORCH_API_URL` (default `http://localhost:5000`).
+
+**Control panel** — the **Schedule** action sends the configured fleet to the API:
 
 ```bash
+export PATH="C:/Qt/6.8.2/msvc2022_64/bin:$PATH"
+export PATCHORCH_API_URL="http://localhost:5000"
+./build/src/Release/patchorchestrator_control_ui.exe
+```
+
+Set **Fleet**, **Failure Rate**, and **Seed**, then click **Schedule**. The panel POSTs
+`fleetSize`, `failureRate`, and `seed` to `POST /api/schedules`; the API persists that fleet
+as the schedule's source of truth.
+
+**Dashboard** — read-only; it auto-discovers the latest schedule:
+
+```bash
+export PATH="C:/Qt/6.8.2/msvc2022_64/bin:$PATH"
+export PATCHORCH_API_URL="http://localhost:5000"
+./build/src/Release/patchorchestrator_ui.exe
+```
+
+The dashboard calls `GET /api/schedules` and **auto-selects the most recently created
+schedule** (newest-first), then renders that schedule's fleet from `GET /api/schedules/{id}`
+— no hardcoded endpoints. To override auto-selection, set `PATCHORCH_SCHEDULE_ID`:
+
+```bash
+export PATH="C:/Qt/6.8.2/msvc2022_64/bin:$PATH"
 export PATCHORCH_API_URL="http://localhost:5000"
 export PATCHORCH_SCHEDULE_ID="sch-1"
 ./build/src/Release/patchorchestrator_ui.exe
@@ -190,6 +228,42 @@ JSON object on stdout:
 ```bash
 echo '{"endpoints":[{"id":"ep-1","failure_rate":0.1}],"seed":42}' | PYTHONPATH="." python python/bridge.py
 ```
+
+### End-to-end recipe
+
+A short copy-paste sequence to confirm the shared schedule behavior. The full verification
+checklist lives in `docs/p5-verify.md`.
+
+1. **Start the API** on `http://localhost:5000` (from the repo root):
+
+   ```bash
+   export PATCHORCH_PYTHON_DIR="<project-root>/python"
+   ASPNETCORE_URLS=http://localhost:5000 dotnet run \
+     --project dotnet/PatchOrchestrator.Api/PatchOrchestrator.Api.csproj \
+     -c Release --no-build
+   ```
+
+2. **Run the control panel** in a separate terminal, set **Fleet** / **Failure Rate** /
+   **Seed**, and click **Schedule**:
+
+   ```bash
+   export PATH="C:/Qt/6.8.2/msvc2022_64/bin:$PATH"
+   export PATCHORCH_API_URL="http://localhost:5000"
+   ./build/src/Release/patchorchestrator_control_ui.exe
+   ```
+
+3. **Run the dashboard** in another terminal. Do **not** set `PATCHORCH_SCHEDULE_ID`, so it
+   auto-selects the newest schedule:
+
+   ```bash
+   export PATH="C:/Qt/6.8.2/msvc2022_64/bin:$PATH"
+   export PATCHORCH_API_URL="http://localhost:5000"
+   ./build/src/Release/patchorchestrator_ui.exe
+   ```
+
+4. Confirm the dashboard shows the **same schedule** you scheduled in the control panel, with
+   its fleet of endpoints loaded from the API — no restart, no manual id. Setting
+   `PATCHORCH_SCHEDULE_ID` makes the dashboard select that schedule instead of the newest one.
 
 ---
 
