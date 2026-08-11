@@ -20,6 +20,7 @@ class QPushButton;
 class DemoAppContext;
 class FleetSizeControl;
 class FailureRateControl;
+class SeedControl;
 
 class ControlPanelWindow : public QMainWindow
 {
@@ -56,6 +57,9 @@ public:
     // Sprint 26 (D2): the failure-rate config control embedded in this panel.
     FailureRateControl *failureRateControl() const { return m_failureRate; }
 
+    // Sprint 27 (D3): the seed config control embedded in this panel.
+    SeedControl *seedControl() const { return m_seed; }
+
 private slots:
     void onSchedule();
     void onPause();
@@ -82,6 +86,7 @@ private:
     QLabel *m_confirmationLabel;
     FleetSizeControl *m_fleetSize;
     FailureRateControl *m_failureRate;
+    SeedControl *m_seed;
 
     QNetworkAccessManager m_net;
     QString m_baseUrl;

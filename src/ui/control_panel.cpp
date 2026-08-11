@@ -12,6 +12,7 @@
 #include "failure_rate_control.hpp"
 #include "fleet_size_control.hpp"
 #include "log.hpp"
+#include "seed_control.hpp"
 
 #include <QGroupBox>
 #include <QHBoxLayout>
@@ -62,6 +63,7 @@ ControlPanelWindow::ControlPanelWindow(QWidget *parent)
     , m_confirmationLabel(nullptr)
     , m_fleetSize(nullptr)
     , m_failureRate(nullptr)
+    , m_seed(nullptr)
     , m_baseUrl(envOr("PATCHORCH_API_URL", QStringLiteral("http://localhost:5000")))
     , m_context(nullptr)
     , m_lastKnownState()
@@ -104,6 +106,15 @@ void ControlPanelWindow::buildUi()
     m_failureRate = new FailureRateControl(nullptr, failureBox);
     failureLayout->addWidget(m_failureRate);
     root->addWidget(failureBox);
+
+    // --- Sprint 27 (D3): seed config ---
+    // A spin box that sets the deterministic seed for reproducible demos,
+    // storing the value in the shared DemoAppContext (A3).
+    auto *seedBox = new QGroupBox(QStringLiteral("Seed"), central);
+    auto *seedLayout = new QVBoxLayout(seedBox);
+    m_seed = new SeedControl(nullptr, seedBox);
+    seedLayout->addWidget(m_seed);
+    root->addWidget(seedBox);
 
     // --- Control buttons ---
     auto *controlBox = new QGroupBox(QStringLiteral("Control Actions"), central);
@@ -174,6 +185,9 @@ void ControlPanelWindow::setContext(DemoAppContext *context)
 
     // Sprint 26 (D2): bind the failure-rate control to the shared context.
     m_failureRate->setContext(m_context);
+
+    // Sprint 27 (D3): bind the seed control to the shared context.
+    m_seed->setContext(m_context);
 
     // Propagate shared-state changes into this panel.
     connect(m_context, &DemoAppContext::apiBaseUrlChanged, this,

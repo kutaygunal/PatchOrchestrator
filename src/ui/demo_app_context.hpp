@@ -20,6 +20,7 @@ class DemoAppContext : public QObject
     Q_PROPERTY(QString rolloutState READ rolloutState WRITE setRolloutState NOTIFY rolloutStateChanged)
     Q_PROPERTY(int fleetSize READ fleetSize WRITE setFleetSize NOTIFY fleetSizeChanged)
     Q_PROPERTY(double failureRate READ failureRate WRITE setFailureRate NOTIFY failureRateChanged)
+    Q_PROPERTY(int seed READ seed WRITE setSeed NOTIFY seedChanged)
 
 public:
     explicit DemoAppContext(QObject *parent = nullptr);
@@ -29,6 +30,7 @@ public:
     QString rolloutState() const { return m_rolloutState; }
     int fleetSize() const { return m_fleetSize; }
     double failureRate() const { return m_failureRate; }
+    int seed() const { return m_seed; }
 
 public slots:
     // Setters are change-only: assigning the current value is a no-op and does
@@ -38,6 +40,7 @@ public slots:
     void setRolloutState(const QString &state);
     void setFleetSize(int size);
     void setFailureRate(double rate);
+    void setSeed(int seed);
 
 signals:
     void scheduleIdChanged(const QString &id);
@@ -45,6 +48,7 @@ signals:
     void rolloutStateChanged(const QString &state);
     void fleetSizeChanged(int size);
     void failureRateChanged(double rate);
+    void seedChanged(int seed);
 
 private:
     QString m_scheduleId;
@@ -52,6 +56,7 @@ private:
     QString m_rolloutState;
     int m_fleetSize;
     double m_failureRate;
+    int m_seed;
 };
 
 #endif // PATCHORCHESTRATOR_UI_DEMO_APP_CONTEXT_HPP

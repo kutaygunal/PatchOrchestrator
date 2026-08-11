@@ -11,6 +11,7 @@ const char kDefaultApiBaseUrl[] = "http://localhost:5000";
 const char kInitialRolloutState[] = "idle";
 const int kDefaultFleetSize = 10;
 const double kDefaultFailureRate = 0.0;
+const int kDefaultSeed = 0;
 
 }  // namespace
 
@@ -21,6 +22,7 @@ DemoAppContext::DemoAppContext(QObject *parent)
     , m_rolloutState(QLatin1String(kInitialRolloutState))
     , m_fleetSize(kDefaultFleetSize)
     , m_failureRate(kDefaultFailureRate)
+    , m_seed(kDefaultSeed)
 {
 }
 
@@ -62,4 +64,12 @@ void DemoAppContext::setFailureRate(double rate)
         return;
     m_failureRate = rate;
     emit failureRateChanged(m_failureRate);
+}
+
+void DemoAppContext::setSeed(int seed)
+{
+    if (m_seed == seed)
+        return;
+    m_seed = seed;
+    emit seedChanged(m_seed);
 }

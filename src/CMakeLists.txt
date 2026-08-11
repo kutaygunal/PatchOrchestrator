@@ -103,6 +103,7 @@ if(Qt6_FOUND)
         ui/demo_app_context.cpp
         ui/fleet_size_control.cpp
         ui/failure_rate_control.cpp
+        ui/seed_control.cpp
     )
     target_link_libraries(patchorchestrator_control_ui PRIVATE Qt6::Widgets Qt6::Network)
     target_compile_features(patchorchestrator_control_ui PRIVATE cxx_std_17)
@@ -139,6 +140,7 @@ if(Qt6_FOUND)
         ui/dashboard_legend.cpp
         ui/fleet_size_control.cpp
         ui/failure_rate_control.cpp
+        ui/seed_control.cpp
     )
     target_link_libraries(patchorchestrator_demo PRIVATE Qt6::Widgets Qt6::Network)
     target_include_directories(patchorchestrator_demo PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

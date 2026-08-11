@@ -705,4 +705,80 @@ if(Qt6_FOUND)
              COMMAND d2_regression_tests)
     set_tests_properties(d2_regression
         PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+    # --- Sprint 27 (D3) seed config tests (Qt Test) -----------------------
+    # Builds the seed control plus the shared context and runs the
+    # accepts-integer-seed, control-updates-context, and regression tests
+    # offscreen.
+    add_executable(d3_seed_tests
+        d3_seed_tests.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/seed_control.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
+    )
+    target_include_directories(d3_seed_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
+    target_link_libraries(d3_seed_tests PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
+    target_compile_features(d3_seed_tests PRIVATE cxx_std_17)
+
+    if(MSVC)
+        target_compile_options(d3_seed_tests PRIVATE /W4)
+    else()
+        target_compile_options(d3_seed_tests PRIVATE -Wall -Wextra)
+    endif()
+
+    add_test(NAME d3_seed
+             COMMAND d3_seed_tests)
+    set_tests_properties(d3_seed
+        PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+    add_executable(d3_control_context_tests
+        d3_control_context_tests.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/seed_control.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
+    )
+    target_include_directories(d3_control_context_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
+    target_link_libraries(d3_control_context_tests PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
+    target_compile_features(d3_control_context_tests PRIVATE cxx_std_17)
+
+    if(MSVC)
+        target_compile_options(d3_control_context_tests PRIVATE /W4)
+    else()
+        target_compile_options(d3_control_context_tests PRIVATE -Wall -Wextra)
+    endif()
+
+    add_test(NAME d3_control_context
+             COMMAND d3_control_context_tests)
+    set_tests_properties(d3_control_context
+        PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+    add_executable(d3_regression_tests
+        d3_regression_tests.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/seed_control.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_main_window.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/roadmap_tab.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/roadmap_model.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/dashboard.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/animated_progress_bar.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/schedule_editor.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/control_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/state_badge.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/fleet_summary_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/dashboard_legend.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/fleet_size_control.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/failure_rate_control.cpp
+    )
+    target_include_directories(d3_regression_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
+    target_link_libraries(d3_regression_tests PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
+    target_compile_features(d3_regression_tests PRIVATE cxx_std_17)
+
+    if(MSVC)
+        target_compile_options(d3_regression_tests PRIVATE /W4)
+    else()
+        target_compile_options(d3_regression_tests PRIVATE -Wall -Wextra)
+    endif()
+
+    add_test(NAME d3_regression
+             COMMAND d3_regression_tests)
+    set_tests_properties(d3_regression
+        PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 endif()
