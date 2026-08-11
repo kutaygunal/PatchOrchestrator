@@ -9,6 +9,7 @@
 
 #include "control_panel.hpp"
 #include "demo_app_context.hpp"
+#include "failure_rate_control.hpp"
 #include "fleet_size_control.hpp"
 #include "log.hpp"
 
@@ -60,6 +61,7 @@ ControlPanelWindow::ControlPanelWindow(QWidget *parent)
     , m_diffLabel(nullptr)
     , m_confirmationLabel(nullptr)
     , m_fleetSize(nullptr)
+    , m_failureRate(nullptr)
     , m_baseUrl(envOr("PATCHORCH_API_URL", QStringLiteral("http://localhost:5000")))
     , m_context(nullptr)
     , m_lastKnownState()
@@ -93,6 +95,15 @@ void ControlPanelWindow::buildUi()
     m_fleetSize = new FleetSizeControl(nullptr, fleetBox);
     fleetLayout->addWidget(m_fleetSize);
     root->addWidget(fleetBox);
+
+    // --- Sprint 26 (D2): failure rate config ---
+    // A slider/spin box that sets the per-endpoint failure rate (0.0–1.0),
+    // storing the value in the shared DemoAppContext (A3).
+    auto *failureBox = new QGroupBox(QStringLiteral("Failure Rate"), central);
+    auto *failureLayout = new QVBoxLayout(failureBox);
+    m_failureRate = new FailureRateControl(nullptr, failureBox);
+    failureLayout->addWidget(m_failureRate);
+    root->addWidget(failureBox);
 
     // --- Control buttons ---
     auto *controlBox = new QGroupBox(QStringLiteral("Control Actions"), central);
@@ -160,6 +171,9 @@ void ControlPanelWindow::setContext(DemoAppContext *context)
 
     // Sprint 25 (D1): bind the fleet-size control to the shared context.
     m_fleetSize->setContext(m_context);
+
+    // Sprint 26 (D2): bind the failure-rate control to the shared context.
+    m_failureRate->setContext(m_context);
 
     // Propagate shared-state changes into this panel.
     connect(m_context, &DemoAppContext::apiBaseUrlChanged, this,

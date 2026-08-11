@@ -19,6 +19,7 @@ class QNetworkReply;
 class QPushButton;
 class DemoAppContext;
 class FleetSizeControl;
+class FailureRateControl;
 
 class ControlPanelWindow : public QMainWindow
 {
@@ -52,6 +53,9 @@ public:
     // Sprint 25 (D1): the fleet-size config control embedded in this panel.
     FleetSizeControl *fleetSizeControl() const { return m_fleetSize; }
 
+    // Sprint 26 (D2): the failure-rate config control embedded in this panel.
+    FailureRateControl *failureRateControl() const { return m_failureRate; }
+
 private slots:
     void onSchedule();
     void onPause();
@@ -77,6 +81,7 @@ private:
     QLabel *m_diffLabel;
     QLabel *m_confirmationLabel;
     FleetSizeControl *m_fleetSize;
+    FailureRateControl *m_failureRate;
 
     QNetworkAccessManager m_net;
     QString m_baseUrl;
