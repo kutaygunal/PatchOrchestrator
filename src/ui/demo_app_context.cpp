@@ -9,6 +9,7 @@ namespace {
 
 const char kDefaultApiBaseUrl[] = "http://localhost:5000";
 const char kInitialRolloutState[] = "idle";
+const int kDefaultFleetSize = 10;
 
 }  // namespace
 
@@ -17,6 +18,7 @@ DemoAppContext::DemoAppContext(QObject *parent)
     , m_scheduleId()
     , m_apiBaseUrl(QLatin1String(kDefaultApiBaseUrl))
     , m_rolloutState(QLatin1String(kInitialRolloutState))
+    , m_fleetSize(kDefaultFleetSize)
 {
 }
 
@@ -42,4 +44,12 @@ void DemoAppContext::setRolloutState(const QString &state)
         return;
     m_rolloutState = state;
     emit rolloutStateChanged(m_rolloutState);
+}
+
+void DemoAppContext::setFleetSize(int size)
+{
+    if (m_fleetSize == size)
+        return;
+    m_fleetSize = size;
+    emit fleetSizeChanged(m_fleetSize);
 }

@@ -9,6 +9,7 @@
 
 #include "control_panel.hpp"
 #include "demo_app_context.hpp"
+#include "fleet_size_control.hpp"
 #include "log.hpp"
 
 #include <QGroupBox>
@@ -58,6 +59,7 @@ ControlPanelWindow::ControlPanelWindow(QWidget *parent)
     , m_statusLabel(nullptr)
     , m_diffLabel(nullptr)
     , m_confirmationLabel(nullptr)
+    , m_fleetSize(nullptr)
     , m_baseUrl(envOr("PATCHORCH_API_URL", QStringLiteral("http://localhost:5000")))
     , m_context(nullptr)
     , m_lastKnownState()
@@ -82,6 +84,15 @@ void ControlPanelWindow::buildUi()
     scheduleLayout->addWidget(new QLabel(QStringLiteral("Schedule ID")));
     scheduleLayout->addWidget(m_scheduleId);
     root->addWidget(scheduleBox);
+
+    // --- Sprint 25 (D1): fleet size config ---
+    // A spin box that sets the number of endpoints in the fleet before
+    // simulation, storing the value in the shared DemoAppContext (A3).
+    auto *fleetBox = new QGroupBox(QStringLiteral("Fleet"), central);
+    auto *fleetLayout = new QVBoxLayout(fleetBox);
+    m_fleetSize = new FleetSizeControl(nullptr, fleetBox);
+    fleetLayout->addWidget(m_fleetSize);
+    root->addWidget(fleetBox);
 
     // --- Control buttons ---
     auto *controlBox = new QGroupBox(QStringLiteral("Control Actions"), central);
@@ -146,6 +157,9 @@ void ControlPanelWindow::setContext(DemoAppContext *context)
     m_baseUrl = m_context->apiBaseUrl();
     m_scheduleId->setText(m_context->scheduleId());
     setStatusMessage(QStringLiteral("API base URL: %1").arg(m_baseUrl));
+
+    // Sprint 25 (D1): bind the fleet-size control to the shared context.
+    m_fleetSize->setContext(m_context);
 
     // Propagate shared-state changes into this panel.
     connect(m_context, &DemoAppContext::apiBaseUrlChanged, this,

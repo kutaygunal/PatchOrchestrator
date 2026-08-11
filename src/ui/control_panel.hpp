@@ -18,6 +18,7 @@ class QLineEdit;
 class QNetworkReply;
 class QPushButton;
 class DemoAppContext;
+class FleetSizeControl;
 
 class ControlPanelWindow : public QMainWindow
 {
@@ -48,6 +49,9 @@ public:
     QString confirmationText() const;
     QString lastKnownState() const { return m_lastKnownState; }
 
+    // Sprint 25 (D1): the fleet-size config control embedded in this panel.
+    FleetSizeControl *fleetSizeControl() const { return m_fleetSize; }
+
 private slots:
     void onSchedule();
     void onPause();
@@ -72,6 +76,7 @@ private:
     QLabel *m_statusLabel;
     QLabel *m_diffLabel;
     QLabel *m_confirmationLabel;
+    FleetSizeControl *m_fleetSize;
 
     QNetworkAccessManager m_net;
     QString m_baseUrl;

@@ -18,6 +18,7 @@ class DemoAppContext : public QObject
     Q_PROPERTY(QString scheduleId READ scheduleId WRITE setScheduleId NOTIFY scheduleIdChanged)
     Q_PROPERTY(QString apiBaseUrl READ apiBaseUrl WRITE setApiBaseUrl NOTIFY apiBaseUrlChanged)
     Q_PROPERTY(QString rolloutState READ rolloutState WRITE setRolloutState NOTIFY rolloutStateChanged)
+    Q_PROPERTY(int fleetSize READ fleetSize WRITE setFleetSize NOTIFY fleetSizeChanged)
 
 public:
     explicit DemoAppContext(QObject *parent = nullptr);
@@ -25,6 +26,7 @@ public:
     QString scheduleId() const { return m_scheduleId; }
     QString apiBaseUrl() const { return m_apiBaseUrl; }
     QString rolloutState() const { return m_rolloutState; }
+    int fleetSize() const { return m_fleetSize; }
 
 public slots:
     // Setters are change-only: assigning the current value is a no-op and does
@@ -32,16 +34,19 @@ public slots:
     void setScheduleId(const QString &id);
     void setApiBaseUrl(const QString &url);
     void setRolloutState(const QString &state);
+    void setFleetSize(int size);
 
 signals:
     void scheduleIdChanged(const QString &id);
     void apiBaseUrlChanged(const QString &url);
     void rolloutStateChanged(const QString &state);
+    void fleetSizeChanged(int size);
 
 private:
     QString m_scheduleId;
     QString m_apiBaseUrl;
     QString m_rolloutState;
+    int m_fleetSize;
 };
 
 #endif // PATCHORCHESTRATOR_UI_DEMO_APP_CONTEXT_HPP

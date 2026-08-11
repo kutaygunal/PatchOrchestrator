@@ -57,6 +57,7 @@ if(Qt6_FOUND)
         ${CMAKE_SOURCE_DIR}/src/ui/state_badge.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/fleet_summary_panel.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/dashboard_legend.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/fleet_size_control.cpp
     )
     target_include_directories(a2_layout_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
     target_link_libraries(a2_layout_tests PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
@@ -94,6 +95,7 @@ if(Qt6_FOUND)
         ${CMAKE_SOURCE_DIR}/src/ui/state_badge.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/fleet_summary_panel.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/dashboard_legend.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/fleet_size_control.cpp
     )
     target_include_directories(a3_context_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
     target_link_libraries(a3_context_tests PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
@@ -300,6 +302,7 @@ if(Qt6_FOUND)
         b7_control_feedback_tests.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/control_panel.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/fleet_size_control.cpp
     )
     target_include_directories(b7_control_feedback_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
     target_link_libraries(b7_control_feedback_tests PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
@@ -549,5 +552,79 @@ if(Qt6_FOUND)
     add_test(NAME c7_regression
              COMMAND c7_dashboard_legend_tests t3_regression)
     set_tests_properties(c7_legend_renders c7_all_states c7_regression
+        PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+    # --- Sprint 25 (D1) fleet size config tests (Qt Test) ------------------
+    # Builds the fleet-size spin box control plus the shared context and runs
+    # the spin-box range/set, control-updates-context, and regression tests
+    # offscreen.
+    add_executable(d1_spinbox_tests
+        d1_spinbox_tests.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/fleet_size_control.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
+    )
+    target_include_directories(d1_spinbox_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
+    target_link_libraries(d1_spinbox_tests PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
+    target_compile_features(d1_spinbox_tests PRIVATE cxx_std_17)
+
+    if(MSVC)
+        target_compile_options(d1_spinbox_tests PRIVATE /W4)
+    else()
+        target_compile_options(d1_spinbox_tests PRIVATE -Wall -Wextra)
+    endif()
+
+    add_test(NAME d1_spinbox
+             COMMAND d1_spinbox_tests)
+    set_tests_properties(d1_spinbox
+        PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+    add_executable(d1_control_context_tests
+        d1_control_context_tests.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/fleet_size_control.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
+    )
+    target_include_directories(d1_control_context_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
+    target_link_libraries(d1_control_context_tests PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
+    target_compile_features(d1_control_context_tests PRIVATE cxx_std_17)
+
+    if(MSVC)
+        target_compile_options(d1_control_context_tests PRIVATE /W4)
+    else()
+        target_compile_options(d1_control_context_tests PRIVATE -Wall -Wextra)
+    endif()
+
+    add_test(NAME d1_control_context
+             COMMAND d1_control_context_tests)
+    set_tests_properties(d1_control_context
+        PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+    add_executable(d1_regression_tests
+        d1_regression_tests.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/fleet_size_control.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_main_window.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/roadmap_tab.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/roadmap_model.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/dashboard.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/animated_progress_bar.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/schedule_editor.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/control_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/state_badge.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/fleet_summary_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/dashboard_legend.cpp
+    )
+    target_include_directories(d1_regression_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
+    target_link_libraries(d1_regression_tests PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
+    target_compile_features(d1_regression_tests PRIVATE cxx_std_17)
+
+    if(MSVC)
+        target_compile_options(d1_regression_tests PRIVATE /W4)
+    else()
+        target_compile_options(d1_regression_tests PRIVATE -Wall -Wextra)
+    endif()
+
+    add_test(NAME d1_regression
+             COMMAND d1_regression_tests)
+    set_tests_properties(d1_regression
         PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 endif()
