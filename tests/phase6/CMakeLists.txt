@@ -49,6 +49,7 @@ if(Qt6_FOUND)
         ${CMAKE_SOURCE_DIR}/src/ui/demo_main_window.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/roadmap_tab.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/roadmap_model.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/dashboard.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/schedule_editor.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/control_panel.cpp
@@ -81,6 +82,7 @@ if(Qt6_FOUND)
         ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/demo_main_window.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/roadmap_tab.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/roadmap_model.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/dashboard.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/schedule_editor.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/control_panel.cpp
