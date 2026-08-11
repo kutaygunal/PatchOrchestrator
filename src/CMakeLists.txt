@@ -48,6 +48,8 @@ find_package(Qt6 6.2 QUIET COMPONENTS Widgets Network)
 if(Qt6_FOUND)
     set(CMAKE_AUTOMOC ON)
 
+    set(CMAKE_AUTORCC ON)
+
     add_executable(patchorchestrator_ui
         ui/dashboard_main.cpp
         ui/dashboard.cpp
@@ -58,6 +60,7 @@ if(Qt6_FOUND)
         ui/audit_log_panel.cpp
         ui/timestamp_format.cpp
         ui/dashboard_legend.cpp
+        ui/icons.qrc
     )
     target_link_libraries(patchorchestrator_ui PRIVATE Qt6::Widgets Qt6::Network)
     target_compile_features(patchorchestrator_ui PRIVATE cxx_std_17)
@@ -99,6 +102,8 @@ find_package(Qt6 6.2 QUIET COMPONENTS Widgets Network)
 if(Qt6_FOUND)
     set(CMAKE_AUTOMOC ON)
 
+    set(CMAKE_AUTORCC ON)
+
     add_executable(patchorchestrator_control_ui
         ui/control_main.cpp
         ui/control_panel.cpp
@@ -110,6 +115,7 @@ if(Qt6_FOUND)
         ui/scenario_presets.cpp
         ui/scenario_selector.cpp
         ui/config_validator.cpp
+        ui/icons.qrc
     )
     target_link_libraries(patchorchestrator_control_ui PRIVATE Qt6::Widgets Qt6::Network)
     target_compile_features(patchorchestrator_control_ui PRIVATE cxx_std_17)

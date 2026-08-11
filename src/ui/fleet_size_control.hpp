@@ -9,9 +9,9 @@
 #ifndef PATCHORCHESTRATOR_UI_FLEET_SIZE_CONTROL_HPP
 #define PATCHORCHESTRATOR_UI_FLEET_SIZE_CONTROL_HPP
 
+#include <QSpinBox>
 #include <QWidget>
 
-class QSpinBox;
 class DemoAppContext;
 
 class FleetSizeControl : public QWidget

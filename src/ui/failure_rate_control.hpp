@@ -10,10 +10,10 @@
 #ifndef PATCHORCHESTRATOR_UI_FAILURE_RATE_CONTROL_HPP
 #define PATCHORCHESTRATOR_UI_FAILURE_RATE_CONTROL_HPP
 
+#include <QDoubleSpinBox>
+#include <QSlider>
 #include <QWidget>
 
-class QDoubleSpinBox;
-class QSlider;
 class DemoAppContext;
 
 class FailureRateControl : public QWidget

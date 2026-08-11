@@ -9,9 +9,9 @@
 #ifndef PATCHORCHESTRATOR_UI_SEED_CONTROL_HPP
 #define PATCHORCHESTRATOR_UI_SEED_CONTROL_HPP
 
+#include <QSpinBox>
 #include <QWidget>
 
-class QSpinBox;
 class DemoAppContext;
 
 class SeedControl : public QWidget

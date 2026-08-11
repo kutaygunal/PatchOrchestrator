@@ -13,6 +13,7 @@
 #include "state_badge.hpp"
 
 #include <QCloseEvent>
+#include <QDateTime>
 #include <QDockWidget>
 #include <QHeaderView>
 #include <QJsonArray>
@@ -32,12 +33,19 @@ namespace {
 constexpr int kDefaultPollIntervalMs = 2000;
 constexpr int kDefaultSeed = 42;
 
-// Default endpoint set used to drive the simulation on startup.
+// Default endpoint set used to drive the simulation on startup, before the
+// API's schedule detail (GET /api/schedules/{id}) is discovered. P3: the
+// dashboard replaces this with the schedule's real fleet when discovery
+// succeeds. Keys use the API contract (failureRate), matching the .NET
+// SimulateEndpointRequest binding.
 const QJsonArray kDefaultEndpoints = [] {
     QJsonArray arr;
-    arr.append(QJsonObject{{"id", "ep-1"}, {"failure_rate", 0.1}});
-    arr.append(QJsonObject{{"id", "ep-2"}, {"failure_rate", 0.0}});
-    arr.append(QJsonObject{{"id", "ep-3"}, {"failure_rate", 0.3}});
+    arr.append(QJsonObject{{QStringLiteral("id"), QStringLiteral("ep-1")},
+                           {QStringLiteral("failureRate"), 0.1}});
+    arr.append(QJsonObject{{QStringLiteral("id"), QStringLiteral("ep-2")},
+                           {QStringLiteral("failureRate"), 0.0}});
+    arr.append(QJsonObject{{QStringLiteral("id"), QStringLiteral("ep-3")},
+                           {QStringLiteral("failureRate"), 0.3}});
     return arr;
 }();
 
@@ -63,6 +71,31 @@ QColor DashboardWindow::colorForState(const QString &state)
     return StateBadge::colorForState(state);
 }
 
+// P3: pure schedule-discovery logic (no I/O). The PATCHORCH_SCHEDULE_ID
+// override always wins when set; otherwise the schedule with the newest
+// "created" timestamp is selected (order-independent); an empty list resolves
+// to an empty id. See tests/phase6/p3_dashboard_discovery_tests.cpp.
+QString DashboardWindow::resolveScheduleId(const QJsonArray &schedules,
+                                           const QString &envOverride)
+{
+    if (!envOverride.isEmpty())
+        return envOverride;
+
+    QDateTime newest;
+    QString newestId;
+    for (const auto &value : schedules) {
+        const QJsonObject schedule = value.toObject();
+        const QDateTime created =
+            QDateTime::fromString(schedule.value(QStringLiteral("created")).toString(),
+                                  Qt::ISODate);
+        if (newestId.isEmpty() || created > newest) {
+            newest = created;
+            newestId = schedule.value(QStringLiteral("id")).toString();
+        }
+    }
+    return newestId;
+}
+
 DashboardWindow::DashboardWindow(QWidget *parent)
     : QMainWindow(parent)
     , m_table(nullptr)
@@ -82,7 +115,7 @@ DashboardWindow::DashboardWindow(QWidget *parent)
     connect(&m_timer, &QTimer::timeout, this, &DashboardWindow::onPollTick);
     m_timer.start(kDefaultPollIntervalMs);
 
-    ensureSchedule();
+    discoverSchedules();
 }
 
 void DashboardWindow::setContext(DemoAppContext *context)
@@ -218,7 +251,10 @@ void DashboardWindow::closeEvent(QCloseEvent *event)
 
 void DashboardWindow::refreshNow()
 {
-    onPollTick();
+    // P3: a manual refresh re-runs discovery (GET /api/schedules), re-picks
+    // the schedule and reloads its fleet, so the dashboard picks up newly
+    // created schedules and their fleets.
+    discoverSchedules();
 }
 
 void DashboardWindow::buildUi()
@@ -252,6 +288,82 @@ void DashboardWindow::buildUi()
     setCentralWidget(m_table);
 
     statusBar()->showMessage(QStringLiteral("Connecting to %1 ...").arg(m_baseUrl));
+}
+
+// P3: startup/refresh discovery. GET /api/schedules returns the known
+// schedules newest-first; we resolve which one to load (honouring the
+// PATCHORCH_SCHEDULE_ID override), then load its fleet from the API.
+void DashboardWindow::discoverSchedules()
+{
+    QNetworkRequest request(QUrl(m_baseUrl + QStringLiteral("/api/schedules")));
+    QNetworkReply *reply = m_net.get(request);
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        onSchedulesReply(reply);
+    });
+}
+
+void DashboardWindow::onSchedulesReply(QNetworkReply *reply)
+{
+    reply->deleteLater();
+    if (reply->error() != QNetworkReply::NoError) {
+        // No server / list unavailable: fall back to the configured or
+        // overridden schedule id and continue with the default fleet.
+        PATCHORCH_LOG_WARN(QStringLiteral("Schedule discovery failed: %1")
+                               .arg(reply->errorString()));
+        startWithSchedule();
+        return;
+    }
+
+    const QJsonDocument doc = QJsonDocument::fromJson(reply->readAll());
+    const QJsonArray schedules = doc.array();
+    const QString envOverride =
+        envOr("PATCHORCH_SCHEDULE_ID", QString());
+    const QString resolved = resolveScheduleId(schedules, envOverride);
+    if (!resolved.isEmpty())
+        m_scheduleId = resolved;
+
+    PATCHORCH_LOG_INFO(QStringLiteral("Discovered schedule %1").arg(m_scheduleId));
+    setStatusMessage(QStringLiteral("Schedule %1 — loading fleet").arg(m_scheduleId));
+    startWithSchedule();
+}
+
+void DashboardWindow::startWithSchedule()
+{
+    // Load the resolved schedule's fleet from the API (GET /api/schedules/{id})
+    // instead of hardcoding ep-1/ep-2/ep-3.
+    fetchFleet();
+}
+
+void DashboardWindow::fetchFleet()
+{
+    QNetworkRequest request(
+        QUrl(m_baseUrl + QStringLiteral("/api/schedules/") + m_scheduleId));
+    QNetworkReply *reply = m_net.get(request);
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        onFleetReply(reply);
+    });
+}
+
+void DashboardWindow::onFleetReply(QNetworkReply *reply)
+{
+    reply->deleteLater();
+    if (reply->error() != QNetworkReply::NoError) {
+        // Fleet unavailable: keep the default endpoint set.
+        PATCHORCH_LOG_WARN(QStringLiteral("Fleet fetch failed: %1")
+                               .arg(reply->errorString()));
+        m_fleet = kDefaultEndpoints;
+        ensureSchedule();
+        return;
+    }
+
+    const QJsonDocument doc = QJsonDocument::fromJson(reply->readAll());
+    const QJsonObject root = doc.object();
+    const QJsonArray fleet =
+        root.value(QStringLiteral("fleet")).toArray();
+    m_fleet = fleet.isEmpty() ? kDefaultEndpoints : fleet;
+    PATCHORCH_LOG_INFO(QStringLiteral("Loaded fleet of %1 endpoints for %2")
+                           .arg(m_fleet.size()).arg(m_scheduleId));
+    ensureSchedule();
 }
 
 void DashboardWindow::ensureSchedule()
@@ -377,7 +489,9 @@ void DashboardWindow::pollSimulate()
 {
     QJsonObject body;
     body["seed"] = kDefaultSeed;
-    body["endpoints"] = kDefaultEndpoints;
+    // P3: drive the simulation with the discovered fleet (loaded from the
+    // schedule's API detail) instead of a hardcoded ep-1/ep-2/ep-3 list.
+    body["endpoints"] = m_fleet;
 
     QNetworkRequest request(
         QUrl(m_baseUrl + QStringLiteral("/api/schedules/") + m_scheduleId +

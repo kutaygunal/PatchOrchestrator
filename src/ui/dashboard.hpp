@@ -7,6 +7,7 @@
 #define PATCHORCHESTRATOR_UI_DASHBOARD_HPP
 
 #include <QColor>
+#include <QJsonArray>
 #include <QMainWindow>
 #include <QNetworkAccessManager>
 #include <QStringList>
@@ -38,6 +39,17 @@ class DashboardWindow : public QMainWindow
 
 public:
     explicit DashboardWindow(QWidget *parent = nullptr);
+
+    // P3: auto-discovery. Decides which schedule the dashboard should load.
+    // Returns envOverride when it is non-empty (preserves the
+    // PATCHORCH_SCHEDULE_ID override); otherwise the "id" of the schedule with
+    // the newest "created" timestamp; empty when schedules is empty. Pure
+    // logic (no I/O), so it is unit-testable in isolation.
+    static QString resolveScheduleId(const QJsonArray &schedules,
+                                     const QString &envOverride);
+
+    // P3: public test accessor for the currently selected schedule id.
+    QString scheduleId() const { return m_scheduleId; }
 
     // Sprint 3 (A3): bind this panel to the shared app context. The dashboard
     // reads the schedule id and API base URL from the context and publishes
@@ -124,12 +136,17 @@ private slots:
     void onPollTick();
     void onSimulateReply(QNetworkReply *reply);
     void onStatusReply(QNetworkReply *reply);
+    void onSchedulesReply(QNetworkReply *reply);
+    void onFleetReply(QNetworkReply *reply);
     void onCreateReply(QNetworkReply *reply);
     void onStreamReadyRead(QNetworkReply *reply);
     void onStreamFinished(QNetworkReply *reply);
 
 private:
     void buildUi();
+    void discoverSchedules();
+    void startWithSchedule();
+    void fetchFleet();
     void ensureSchedule();
     void pollSimulate();
     void pollStatus();
@@ -144,6 +161,7 @@ private:
     QString m_baseUrl;
     QString m_scheduleId;
     bool m_scheduleReady;
+    QJsonArray m_fleet; // P3: discovered fleet loaded from the API
     DemoAppContext *m_context;
 
     // Sprint 18 (C1): one animated progress bar per endpoint row.

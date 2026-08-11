@@ -1415,4 +1415,65 @@ if(Qt6_FOUND)
              COMMAND e7_regression)
     set_tests_properties(e7_regression
         PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+    # --- Phase 2 (P2) control-panel schedule payload tests (Qt Test) ------
+    # Builds the control panel plus the shared context and config controls and
+    # verifies the Schedule POST body includes fleetSize, failureRate, and seed
+    # from the controls (the API's P1 contract for persisting the fleet).
+    # Requires ControlPanelWindow::schedulePayload() (engineer implements).
+    add_executable(p2_control_payload
+        p2_control_payload_tests.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/control_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/config_validator.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/scenario_presets.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/scenario_selector.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/fleet_size_control.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/failure_rate_control.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/seed_control.cpp
+    )
+    target_include_directories(p2_control_payload PRIVATE ${CMAKE_SOURCE_DIR}/src)
+    target_link_libraries(p2_control_payload PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
+    target_compile_features(p2_control_payload PRIVATE cxx_std_17)
+
+    if(MSVC)
+        target_compile_options(p2_control_payload PRIVATE /W4)
+    else()
+        target_compile_options(p2_control_payload PRIVATE -Wall -Wextra)
+    endif()
+
+    add_test(NAME p2_control_payload
+             COMMAND p2_control_payload)
+    set_tests_properties(p2_control_payload
+        PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+    # --- Phase 3 (P3) dashboard discovery-logic tests (Qt Test) -----------
+    # Builds the dashboard and verifies it resolves the schedule to load from
+    # GET /api/schedules (picks the newest, or the PATCHORCH_SCHEDULE_ID env
+    # override) instead of hardcoding endpoints.
+    # Requires DashboardWindow::resolveScheduleId() and scheduleId() (engineer
+    # implements).
+    add_executable(p3_dashboard_discovery
+        p3_dashboard_discovery_tests.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/dashboard.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/animated_progress_bar.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/state_badge.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/fleet_summary_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/dashboard_legend.cpp
+    )
+    target_include_directories(p3_dashboard_discovery PRIVATE ${CMAKE_SOURCE_DIR}/src)
+    target_link_libraries(p3_dashboard_discovery PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
+    target_compile_features(p3_dashboard_discovery PRIVATE cxx_std_17)
+
+    if(MSVC)
+        target_compile_options(p3_dashboard_discovery PRIVATE /W4)
+    else()
+        target_compile_options(p3_dashboard_discovery PRIVATE -Wall -Wextra)
+    endif()
+
+    add_test(NAME p3_dashboard_discovery
+             COMMAND p3_dashboard_discovery)
+    set_tests_properties(p3_dashboard_discovery
+        PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 endif()

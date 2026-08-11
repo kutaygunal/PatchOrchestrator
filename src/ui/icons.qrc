@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/icons">
+        <file alias="patchorchestrator_dashboard.png">icons/patchorchestrator_dashboard.png</file>
+        <file alias="patchorchestrator_control.png">icons/patchorchestrator_control.png</file>
+    </qresource>
+</RCC>

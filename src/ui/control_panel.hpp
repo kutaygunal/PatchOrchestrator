@@ -13,14 +13,15 @@
 #include <QMainWindow>
 #include <QNetworkAccessManager>
 
+#include "failure_rate_control.hpp"
+#include "fleet_size_control.hpp"
+#include "seed_control.hpp"
+
 class QLabel;
 class QLineEdit;
 class QNetworkReply;
 class QPushButton;
 class DemoAppContext;
-class FleetSizeControl;
-class FailureRateControl;
-class SeedControl;
 class ScenarioSelector;
 
 class ControlPanelWindow : public QMainWindow
@@ -68,6 +69,17 @@ public:
     // If invalid, the action is blocked and an inline error is shown near the
     // config controls. Public so tests can read the resulting error state.
     bool validateConfig();
+
+    // Phase 2 (P2): the JSON body sent by onSchedule() in the POST
+    // /api/schedules request. It carries id, package, group_id plus the fleet
+    // configuration. When a DemoAppContext is bound, fleetSize, failureRate,
+    // and seed come from the context; otherwise they fall back to the current
+    // values of the embedded config controls. onSchedule() sends exactly this
+    // payload. Public so tests can inspect the request body without a server.
+    QJsonObject schedulePayload() const;
+
+    // Test accessor for the Schedule button (object name "scheduleButton").
+    QPushButton *scheduleButton() const { return m_scheduleButton; }
 
     // Test accessors for the config-validation inline error label and the
     // current status text.

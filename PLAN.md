@@ -32,9 +32,9 @@ One authoritative fleet definition per schedule, stored server-side, read by bot
 
 | # | Phase | Description | Priority | Status | Assigned to | Tests | Committed |
 |---|-------|-------------|----------|--------|-------------|-------|-----------|
-| 1 | API: store fleet on create + list schedules | Persist fleet config/endpoints on `POST /api/schedules`; add `GET /api/schedules` returning id, status, created time (newest first) | High | IN PROGRESS | senior-engineer-p1 | P1ApiTests.cs | |
-| 2 | Control panel: send fleet config | Include `fleetSize`, `failureRate`, `seed` in the Schedule POST body from the existing controls | High | NOT STARTED | | | |
-| 3 | Dashboard: auto-discover fleet | Remove hardcoded endpoints; on startup/refresh call `GET /api/schedules`, pick latest (or env override), load its fleet | High | NOT STARTED | | | |
+| 1 | API: store fleet on create + list schedules | Persist fleet config/endpoints on `POST /api/schedules`; add `GET /api/schedules` returning id, status, created time (newest first) | High | DONE | senior-engineer-p1 | P1ApiTests.cs | yes |
+| 2 | Control panel: send fleet config | Include `fleetSize`, `failureRate`, `seed` in the Schedule POST body from the existing controls | High | IN PROGRESS | senior-engineer-p2 | p2_control_payload_tests.cpp | |
+| 3 | Dashboard: auto-discover fleet | Remove hardcoded endpoints; on startup/refresh call `GET /api/schedules`, pick latest (or env override), load its fleet | High | IN PROGRESS | senior-engineer-p3 | p3_dashboard_discovery_tests.cpp | |
 | 4 | Tests | API integration tests (list + stored fleet + ordering); control-panel payload test; dashboard discovery logic test | High | NOT STARTED | | | |
 | 5 | Build + end-to-end verify | Rebuild all targets; run both UIs; confirm scheduling in the control panel appears in the dashboard | High | NOT STARTED | | | |
 | 6 | Docs | Update README run instructions to describe the shared schedule behavior | Low | NOT STARTED | | | |

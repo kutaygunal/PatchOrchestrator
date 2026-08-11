@@ -267,6 +267,28 @@ QString ControlPanelWindow::scheduleId() const
     return m_scheduleId->text().trimmed();
 }
 
+QJsonObject ControlPanelWindow::schedulePayload() const
+{
+    // The shared context is the single source of truth when bound; otherwise
+    // fall back to the values currently held by the config controls. This
+    // mirrors the source-of-truth logic used by validateConfig().
+    const int fleetSize =
+        m_context != nullptr ? m_context->fleetSize() : m_fleetSize->fleetSize();
+    const double failureRate = m_context != nullptr
+                                   ? m_context->failureRate()
+                                   : m_failureRate->failureRate();
+    const int seed = m_context != nullptr ? m_context->seed() : m_seed->seed();
+
+    QJsonObject body;
+    body["id"] = scheduleId();
+    body["package"] = QStringLiteral("pkg-v2");
+    body["group_id"] = QStringLiteral("grp-1");
+    body["fleetSize"] = fleetSize;
+    body["failureRate"] = failureRate;
+    body["seed"] = seed;
+    return body;
+}
+
 void ControlPanelWindow::onSchedule()
 {
     const QString id = scheduleId();
@@ -290,10 +312,10 @@ void ControlPanelWindow::onSchedule()
         return;
     }
 
-    QJsonObject body;
-    body["id"] = id;
-    body["package"] = QStringLiteral("pkg-v2");
-    body["group_id"] = QStringLiteral("grp-1");
+    // Phase 2 (P2): the body includes id/package/group_id plus the fleet
+    // configuration so the API (P1) can persist it as the shared source of
+    // truth. sendAction() sends exactly this payload.
+    const QJsonObject body = schedulePayload();
 
     sendAction(QStringLiteral("/api/schedules"), QStringLiteral("POST"), body);
 }
