@@ -54,6 +54,7 @@ if(Qt6_FOUND)
         ${CMAKE_SOURCE_DIR}/src/ui/animated_progress_bar.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/schedule_editor.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/control_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/state_badge.cpp
     )
     target_include_directories(a2_layout_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
     target_link_libraries(a2_layout_tests PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
@@ -88,6 +89,7 @@ if(Qt6_FOUND)
         ${CMAKE_SOURCE_DIR}/src/ui/animated_progress_bar.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/schedule_editor.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/control_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/state_badge.cpp
     )
     target_include_directories(a3_context_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
     target_link_libraries(a3_context_tests PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
@@ -262,6 +264,7 @@ if(Qt6_FOUND)
         ${CMAKE_SOURCE_DIR}/src/ui/dashboard.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/animated_progress_bar.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/state_badge.cpp
     )
     target_include_directories(b6_dashboard_live_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
     target_link_libraries(b6_dashboard_live_tests PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
@@ -322,6 +325,7 @@ if(Qt6_FOUND)
         ${CMAKE_SOURCE_DIR}/src/ui/animated_progress_bar.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/dashboard.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/state_badge.cpp
     )
     target_include_directories(c1_animated_progress_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
     target_link_libraries(c1_animated_progress_tests PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
@@ -352,6 +356,7 @@ if(Qt6_FOUND)
         ${CMAKE_SOURCE_DIR}/src/ui/dashboard.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/animated_progress_bar.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/state_badge.cpp
     )
     target_include_directories(c2_color_state_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
     target_link_libraries(c2_color_state_tests PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
@@ -370,5 +375,36 @@ if(Qt6_FOUND)
     add_test(NAME c2_regression
              COMMAND c2_color_state_tests t3_regression)
     set_tests_properties(c2_mapping c2_consistency c2_regression
+        PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+    # --- Sprint 20 (C3) state badge renderer tests (Qt Test) ------------
+    # Builds the reusable StateBadge plus the dashboard and runs the
+    # badge-render, reusable, legend, and regression tests offscreen.
+    add_executable(c3_state_badge_tests
+        c3_state_badge_tests.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/state_badge.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/dashboard.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/animated_progress_bar.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
+    )
+    target_include_directories(c3_state_badge_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
+    target_link_libraries(c3_state_badge_tests PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
+    target_compile_features(c3_state_badge_tests PRIVATE cxx_std_17)
+
+    if(MSVC)
+        target_compile_options(c3_state_badge_tests PRIVATE /W4)
+    else()
+        target_compile_options(c3_state_badge_tests PRIVATE -Wall -Wextra)
+    endif()
+
+    add_test(NAME c3_badge_render
+             COMMAND c3_state_badge_tests t1_badgeRender)
+    add_test(NAME c3_reusable
+             COMMAND c3_state_badge_tests t2_reusable)
+    add_test(NAME c3_legend
+             COMMAND c3_state_badge_tests t3_legend)
+    add_test(NAME c3_regression
+             COMMAND c3_state_badge_tests t4_regression)
+    set_tests_properties(c3_badge_render c3_reusable c3_legend c3_regression
         PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 endif()

@@ -68,11 +68,19 @@ public:
     //   succeeded=green, failed=red, paused=amber, running=blue,
     //   pending=grey, rolled_back=purple. Unknown/empty states map to a
     //   defined default color (never crashes).
+    //
+    // Sprint 20 (C3): the mapping now lives in the reusable StateBadge
+    // widget; the dashboard delegates to it so every row/badge stays
+    // consistent with the badge.
     static QColor colorForState(const QString &state);
 
     // Test accessor: the color currently applied to the state cell (badge)
     // of the given row. Returns an invalid QColor if the row is out of range.
     QColor rowStateColor(int row) const;
+
+    // Sprint 20 (C3): test accessor — the StateBadge widget rendered in the
+    // state cell of the given row (nullptr if none).
+    QWidget *rowStateBadge(int row) const;
 
 protected:
     void closeEvent(QCloseEvent *event) override;
