@@ -280,4 +280,33 @@ if(Qt6_FOUND)
              COMMAND b6_dashboard_live_tests t4_regression)
     set_tests_properties(b6_event_rerender b6_no_poll b6_multiple_events b6_regression
         PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+    # --- Sprint 17 (B7) control-action feedback tests (Qt Test) ------------
+    # Builds the control panel and runs the state-diff, confirmation, per-action,
+    # and regression tests offscreen.
+    add_executable(b7_control_feedback_tests
+        b7_control_feedback_tests.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/control_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
+    )
+    target_include_directories(b7_control_feedback_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
+    target_link_libraries(b7_control_feedback_tests PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
+    target_compile_features(b7_control_feedback_tests PRIVATE cxx_std_17)
+
+    if(MSVC)
+        target_compile_options(b7_control_feedback_tests PRIVATE /W4)
+    else()
+        target_compile_options(b7_control_feedback_tests PRIVATE -Wall -Wextra)
+    endif()
+
+    add_test(NAME b7_state_diff
+             COMMAND b7_control_feedback_tests t1_stateDiffDisplayed)
+    add_test(NAME b7_confirmation
+             COMMAND b7_control_feedback_tests t2_confirmationVisible)
+    add_test(NAME b7_per_action
+             COMMAND b7_control_feedback_tests t3_perActionDiff)
+    add_test(NAME b7_regression
+             COMMAND b7_control_feedback_tests t4_regression)
+    set_tests_properties(b7_state_diff b7_confirmation b7_per_action b7_regression
+        PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 endif()

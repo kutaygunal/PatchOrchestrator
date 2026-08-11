@@ -56,8 +56,12 @@ ControlPanelWindow::ControlPanelWindow(QWidget *parent)
     , m_rollbackButton(nullptr)
     , m_refreshButton(nullptr)
     , m_statusLabel(nullptr)
+    , m_diffLabel(nullptr)
+    , m_confirmationLabel(nullptr)
     , m_baseUrl(envOr("PATCHORCH_API_URL", QStringLiteral("http://localhost:5000")))
     , m_context(nullptr)
+    , m_lastKnownState()
+    , m_beforeState()
 {
     setWindowTitle(QStringLiteral("PatchOrchestrator — Control Panel"));
     resize(560, 360);
@@ -89,6 +93,12 @@ void ControlPanelWindow::buildUi()
     m_rollbackButton = new QPushButton(QStringLiteral("Rollback"), controlBox);
     m_refreshButton = new QPushButton(QStringLiteral("Refresh Status"), controlBox);
 
+    m_scheduleButton->setObjectName(QStringLiteral("scheduleButton"));
+    m_pauseButton->setObjectName(QStringLiteral("pauseButton"));
+    m_resumeButton->setObjectName(QStringLiteral("resumeButton"));
+    m_rollbackButton->setObjectName(QStringLiteral("rollbackButton"));
+    m_refreshButton->setObjectName(QStringLiteral("refreshButton"));
+
     controlLayout->addWidget(m_scheduleButton);
     controlLayout->addWidget(m_pauseButton);
     controlLayout->addWidget(m_resumeButton);
@@ -100,6 +110,22 @@ void ControlPanelWindow::buildUi()
     m_statusLabel = new QLabel(QStringLiteral("No status yet."), central);
     m_statusLabel->setWordWrap(true);
     root->addWidget(m_statusLabel, 1);
+
+    // --- Sprint 17 (B7): before/after state diff + confirmation ---
+    m_diffLabel = new QLabel(QStringLiteral("State diff: —"), central);
+    m_diffLabel->setObjectName(QStringLiteral("diffLabel"));
+    m_diffLabel->setWordWrap(true);
+    QFont diffFont = m_diffLabel->font();
+    diffFont.setBold(true);
+    m_diffLabel->setFont(diffFont);
+    root->addWidget(m_diffLabel);
+
+    m_confirmationLabel = new QLabel(QStringLiteral("No action performed yet."), central);
+    m_confirmationLabel->setObjectName(QStringLiteral("confirmationLabel"));
+    m_confirmationLabel->setWordWrap(true);
+    m_confirmationLabel->setStyleSheet(
+        QStringLiteral("color: #1a7f37; font-weight: bold;"));
+    root->addWidget(m_confirmationLabel);
 
     setCentralWidget(central);
 
@@ -128,6 +154,7 @@ void ControlPanelWindow::setContext(DemoAppContext *context)
             [this](const QString &id) { m_scheduleId->setText(id); });
     connect(m_context, &DemoAppContext::rolloutStateChanged, this,
             [this](const QString &state) {
+                m_lastKnownState = state;
                 setStatusMessage(QStringLiteral("Schedule %1 — status: %2")
                                      .arg(m_scheduleId->text().trimmed(), state));
             });
@@ -189,6 +216,7 @@ void ControlPanelWindow::onPause()
         return;
     }
 
+    m_beforeState = m_lastKnownState;
     sendAction(QStringLiteral("/api/schedules/") + id + QStringLiteral("/pause"),
                QStringLiteral("POST"), QJsonObject());
 }
@@ -209,6 +237,7 @@ void ControlPanelWindow::onResume()
         return;
     }
 
+    m_beforeState = m_lastKnownState;
     sendAction(QStringLiteral("/api/schedules/") + id + QStringLiteral("/resume"),
                QStringLiteral("POST"), QJsonObject());
 }
@@ -230,6 +259,7 @@ void ControlPanelWindow::onRollback()
         return;
     }
 
+    m_beforeState = m_lastKnownState;
     sendAction(QStringLiteral("/api/schedules/") + id + QStringLiteral("/rollback"),
                QStringLiteral("POST"), QJsonObject());
 }
@@ -299,6 +329,7 @@ void ControlPanelWindow::onReply(QNetworkReply *reply)
         const QJsonObject root = doc.object();
         const QString status =
             root.value(QStringLiteral("status")).toString(QStringLiteral("unknown"));
+        m_lastKnownState = status;
         if (m_context != nullptr)
             m_context->setRolloutState(status);
         setStatusMessage(QStringLiteral("Schedule %1 — status: %2")
@@ -306,7 +337,60 @@ void ControlPanelWindow::onReply(QNetworkReply *reply)
         return;
     }
 
+    // Sprint 17 (B7): a control action (pause/resume/rollback) returns the new
+    // engine state. Show the before/after diff and a visible confirmation.
+    if (url.contains(QStringLiteral("/pause")) ||
+        url.contains(QStringLiteral("/resume")) ||
+        url.contains(QStringLiteral("/rollback"))) {
+        const QJsonDocument doc = QJsonDocument::fromJson(payload);
+        const QJsonObject root = doc.object();
+        const QString after =
+            root.value(QStringLiteral("status")).toString(QStringLiteral("unknown"));
+        handleActionResult(m_beforeState, after);
+        return;
+    }
+
     setStatusMessage(QStringLiteral("Success (%1): %2").arg(url, QString::fromUtf8(payload)));
+}
+
+void ControlPanelWindow::handleActionResult(const QString &before, const QString &after)
+{
+    m_lastKnownState = after;
+    if (m_context != nullptr)
+        m_context->setRolloutState(after);
+
+    // Before/after state diff.
+    if (before.isEmpty()) {
+        m_diffLabel->setText(QStringLiteral("State diff: %1").arg(after));
+    } else {
+        m_diffLabel->setText(QStringLiteral("State diff: %1 → %2").arg(before, after));
+    }
+
+    // Visible confirmation reflecting the actual new engine state.
+    if (before == after) {
+        m_confirmationLabel->setText(
+            QStringLiteral("No state change — engine already %1.").arg(after));
+        m_confirmationLabel->setStyleSheet(
+            QStringLiteral("color: #9a6700; font-weight: bold;"));
+    } else {
+        m_confirmationLabel->setText(
+            QStringLiteral("✓ Confirmed: engine %1 → %2").arg(before, after));
+        m_confirmationLabel->setStyleSheet(
+            QStringLiteral("color: #1a7f37; font-weight: bold;"));
+    }
+
+    setStatusMessage(QStringLiteral("Schedule %1 — status: %2")
+                         .arg(scheduleId(), after));
+}
+
+QString ControlPanelWindow::diffText() const
+{
+    return m_diffLabel != nullptr ? m_diffLabel->text() : QString();
+}
+
+QString ControlPanelWindow::confirmationText() const
+{
+    return m_confirmationLabel != nullptr ? m_confirmationLabel->text() : QString();
 }
 
 void ControlPanelWindow::setStatusMessage(const QString &message)

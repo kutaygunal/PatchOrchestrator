@@ -37,6 +37,17 @@ public:
     // to the shared context (if bound).
     void setScheduleIdText(const QString &id);
 
+    // Sprint 17 (B7): process the result of a control action and display the
+    // before/after state diff plus a visible confirmation that the engine
+    // actually changed state. Public so tests can simulate an action result
+    // without a live server.
+    void handleActionResult(const QString &before, const QString &after);
+
+    // Test accessors for the before/after diff and confirmation labels.
+    QString diffText() const;
+    QString confirmationText() const;
+    QString lastKnownState() const { return m_lastKnownState; }
+
 private slots:
     void onSchedule();
     void onPause();
@@ -59,10 +70,17 @@ private:
     QPushButton *m_rollbackButton;
     QPushButton *m_refreshButton;
     QLabel *m_statusLabel;
+    QLabel *m_diffLabel;
+    QLabel *m_confirmationLabel;
 
     QNetworkAccessManager m_net;
     QString m_baseUrl;
     DemoAppContext *m_context;
+
+    // Sprint 17 (B7): last known engine state (used as the "before" side of
+    // the diff) and the state captured just before a control action is sent.
+    QString m_lastKnownState;
+    QString m_beforeState;
 };
 
 #endif // PATCHORCHESTRATOR_UI_CONTROL_PANEL_HPP
