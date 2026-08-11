@@ -3,9 +3,8 @@
 # Phase 13 verification runner (scrum-master authored).
 # Checks that the top-level README.md exists and contains the required
 # documentation sections (overview, architecture, prerequisites, build/run for
-# the C++/Qt GUI, .NET API, and Python engine, test instructions, screenshots,
-# and a NinjaOne relevance story). Optionally confirms referenced screenshots
-# exist in the repo.
+# the C++/Qt GUI, .NET API, and Python engine, test instructions, and
+# screenshots). Optionally confirms referenced screenshots exist in the repo.
 #
 # Self-contained and runnable with a HARD TIMEOUT. Run ONE AT A TIME:
 #     timeout 60 bash tests/phase13/verify_readme.sh
@@ -88,13 +87,6 @@ if has "screenshot"; then
   pass "screenshot section/reference present"
 else
   fail "missing screenshot reference"
-fi
-
-# NinjaOne relevance story
-if has "ninjaone" || (has "relevance" && has "patching"); then
-  pass "NinjaOne relevance story present"
-else
-  fail "missing NinjaOne relevance story"
 fi
 
 # --- 2. Referenced screenshots exist (best-effort) ---

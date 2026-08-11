@@ -12,8 +12,7 @@ same live rollout through a shared .NET REST API and a deterministic Python simu
 
 PatchOrchestrator is a senior-level C++/Qt engineering showcase. It demonstrates real
 cross-layer integration (desktop GUI → HTTP API → simulation engine), careful patching-domain
-modeling, and disciplined quality/CI practices. It is built to mirror the kind of work a
-**NinjaOne Senior C++ / Qt patching engineer** does every day.
+modeling, and disciplined quality/CI practices.
 
 ![PatchOrchestrator demo: scheduling a rollout in the Control Panel and watching it live in the Dashboard](docs/screenshots/patchorchestrator_demo.gif)
 
@@ -38,7 +37,6 @@ every state change live — two windows, one shared source of truth.*
 - [API reference](#api-reference)
 - [Testing](#testing)
 - [Packaging & release](#packaging--release)
-- [NinjaOne career relevance](#ninjaone-career-relevance)
 
 ---
 
@@ -459,34 +457,6 @@ and consistent error handling:
   Logging.
 - **Python bridge** logs to stderr (keeping stdout a clean JSON contract) and returns clear
   `{"error": ...}` messages with non-zero exit codes on failure.
-
----
-
-## NinjaOne career relevance
-
-PatchOrchestrator was designed to demonstrate the skills a **NinjaOne Senior C++ / Qt
-patching engineer** relies on:
-
-- **C++/Qt desktop engineering.** Four real Qt Widgets applications (dashboard, schedule
-  editor, control panel, demo hub) built with CMake, automoc, and a modern C++17 core, sharing
-  one hand-written theme and window-chrome system — not a scaffold.
-- **Patching-domain modeling.** The domain model (`src/domain/`) models `Fleet`, `Endpoint`,
-  `Group`, `PatchSchedule`, `MaintenanceWindow`, and `RolloutStage` as plain C++ types with
-  validation — exactly the kind of careful modeling a patching product needs to reason about
-  rollouts safely.
-- **Cross-layer integration.** A desktop GUI talking to a .NET REST API that bridges to a
-  Python simulation engine — a realistic, layered production architecture where each boundary
-  is a clean, tested contract rather than a tangle. Two independent GUIs stay in sync purely
-  through that shared API and an SSE stream, with neither aware the other exists.
-- **Deterministic simulation.** The engine is seeded and deterministic, so a rollout can be
-  reproduced and reasoned about. Predictability is essential for trustworthy patching tooling.
-- **Quality and CI discipline.** Every layer has its own test suite (pytest, gtest/CTest,
-  API/bridge integration, end-to-end), wired into a GitHub Actions pipeline with artifact
-  upload. Hard timeouts and single-command test runners keep the suite reliable.
-
-Taken together, these reflect senior-level software engineering in the patching domain: deep
-C++/Qt desktop skills, careful domain modeling, clean cross-layer integration, deterministic
-simulation, and the CI/quality practices that keep a fleet-patching product safe to operate.
 
 ---
 

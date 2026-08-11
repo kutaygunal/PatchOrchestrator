@@ -1,4 +1,4 @@
-# Phase 13 — README / NinjaOne relevance verification harness
+# Phase 13 — README verification harness
 
 Checks that the top-level `README.md` exists and contains the required documentation sections,
 and that referenced screenshots exist in the repo.
@@ -21,7 +21,6 @@ Exit codes: 0 PASS, 1 FAIL, 2 ENV error.
    - Python engine instructions (python + engine).
    - Test instructions (pytest + ctest).
    - A screenshot reference.
-   - A NinjaOne relevance story.
 3. Referenced screenshot files exist in the repo (e.g. `docs/screenshots/*.png`); remote
    image URLs are noted and not checked locally.
 
