@@ -69,8 +69,10 @@ app.MapPost("/api/schedules", (CreateScheduleRequest request, IEngineBridge brid
     schedules[request.Id] = schedule;
 
     // Start a live engine session for this schedule so the control endpoints
-    // (pause/resume/rollback) can mutate real engine state.
-    sessions[request.Id] = new EngineSession(bridge, CreateDefaultRequest());
+    // (pause/resume/rollback) can mutate real engine state. When configured
+    // fleet size / failure rate / seed are supplied (Sprint 31 / D7), build the
+    // engine request from those values; otherwise fall back to the default.
+    sessions[request.Id] = new EngineSession(bridge, BuildRequestFromConfig(request));
 
     // Open a broadcast channel so the status/stream endpoint can deliver live
     // state changes to connected clients.
@@ -291,7 +293,22 @@ static string StatusFromResult(EngineResult result)
     return states.Count == 1 ? states[0] : "running";
 }
 
-// Default live fleet configuration used when a schedule is created.
+// Build an EngineRequest from configured demo values when supplied (Sprint 31 /
+// D7): endpoints count = fleet size, each endpoint's failure rate, and the seed.
+// Falls back to a default request when no configuration is provided.
+static EngineRequest BuildRequestFromConfig(CreateScheduleRequest request)
+{
+    if (request.FleetSize.HasValue && request.FailureRate.HasValue && request.Seed.HasValue)
+    {
+        return EngineRequestFactory.Build(
+            request.FleetSize.Value, request.FailureRate.Value, request.Seed.Value);
+    }
+
+    return CreateDefaultRequest();
+}
+
+// Default live fleet configuration used when a schedule is created without
+// configured D1–D3 values.
 static EngineRequest CreateDefaultRequest() => new(
     new List<EngineEndpointRequest>
     {
@@ -305,7 +322,9 @@ static EngineRequest CreateDefaultRequest() => new(
 // can bootstrap the web host via WebApplicationFactory<Program>.
 public partial class Program { }
 
-public record CreateScheduleRequest(string Id, string? Package, string? GroupId);
+public record CreateScheduleRequest(
+    string Id, string? Package, string? GroupId,
+    int? FleetSize = null, double? FailureRate = null, int? Seed = null);
 
 public record SimulateEndpointRequest(string Id, double FailureRate);
 public record SimulateRequest(int Seed, IReadOnlyList<SimulateEndpointRequest> Endpoints);
