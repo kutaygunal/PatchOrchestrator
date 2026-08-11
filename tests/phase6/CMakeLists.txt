@@ -472,4 +472,36 @@ if(Qt6_FOUND)
              COMMAND c5_rollout_grouping_tests t4_regression)
     set_tests_properties(c5_grouping c5_headers c5_progress c5_regression
         PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+    # --- Sprint 23 (C6) smooth refresh tests (Qt Test) ------------
+    # Builds the dashboard and runs the smooth-update, no-flicker,
+    # stream-driven, and regression tests offscreen.
+    add_executable(c6_smooth_refresh_tests
+        c6_smooth_refresh_tests.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/dashboard.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/animated_progress_bar.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/state_badge.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/fleet_summary_panel.cpp
+    )
+    target_include_directories(c6_smooth_refresh_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
+    target_link_libraries(c6_smooth_refresh_tests PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
+    target_compile_features(c6_smooth_refresh_tests PRIVATE cxx_std_17)
+
+    if(MSVC)
+        target_compile_options(c6_smooth_refresh_tests PRIVATE /W4)
+    else()
+        target_compile_options(c6_smooth_refresh_tests PRIVATE -Wall -Wextra)
+    endif()
+
+    add_test(NAME c6_smooth
+             COMMAND c6_smooth_refresh_tests t1_smooth)
+    add_test(NAME c6_no_flicker
+             COMMAND c6_smooth_refresh_tests t2_noFlicker)
+    add_test(NAME c6_stream_driven
+             COMMAND c6_smooth_refresh_tests t3_streamDriven)
+    add_test(NAME c6_regression
+             COMMAND c6_smooth_refresh_tests t4_regression)
+    set_tests_properties(c6_smooth c6_no_flicker c6_stream_driven c6_regression
+        PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 endif()
