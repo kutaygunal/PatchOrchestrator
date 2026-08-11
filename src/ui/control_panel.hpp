@@ -64,6 +64,17 @@ public:
     // Sprint 29 (D5): the scenario selector embedded in this panel.
     ScenarioSelector *scenarioSelector() const { return m_scenario; }
 
+    // Sprint 30 (D6): validate the current config before starting a rollout.
+    // If invalid, the action is blocked and an inline error is shown near the
+    // config controls. Public so tests can read the resulting error state.
+    bool validateConfig();
+
+    // Test accessors for the config-validation inline error label and the
+    // current status text.
+    QLabel *validationLabel() const { return m_validationLabel; }
+    QString validationText() const;
+    QString statusText() const;
+
 private slots:
     void onSchedule();
     void onPause();
@@ -88,6 +99,7 @@ private:
     QLabel *m_statusLabel;
     QLabel *m_diffLabel;
     QLabel *m_confirmationLabel;
+    QLabel *m_validationLabel;
     FleetSizeControl *m_fleetSize;
     FailureRateControl *m_failureRate;
     SeedControl *m_seed;

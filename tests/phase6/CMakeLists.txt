@@ -54,6 +54,7 @@ if(Qt6_FOUND)
         ${CMAKE_SOURCE_DIR}/src/ui/animated_progress_bar.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/schedule_editor.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/control_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/config_validator.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/scenario_presets.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/scenario_selector.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/state_badge.cpp
@@ -96,6 +97,7 @@ if(Qt6_FOUND)
         ${CMAKE_SOURCE_DIR}/src/ui/animated_progress_bar.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/schedule_editor.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/control_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/config_validator.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/scenario_presets.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/scenario_selector.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/state_badge.cpp
@@ -309,6 +311,7 @@ if(Qt6_FOUND)
     add_executable(b7_control_feedback_tests
         b7_control_feedback_tests.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/control_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/config_validator.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/scenario_presets.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/scenario_selector.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
@@ -621,6 +624,7 @@ if(Qt6_FOUND)
         ${CMAKE_SOURCE_DIR}/src/ui/animated_progress_bar.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/schedule_editor.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/control_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/config_validator.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/scenario_presets.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/scenario_selector.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/state_badge.cpp
@@ -698,6 +702,7 @@ if(Qt6_FOUND)
         ${CMAKE_SOURCE_DIR}/src/ui/animated_progress_bar.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/schedule_editor.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/control_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/config_validator.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/scenario_presets.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/scenario_selector.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/state_badge.cpp
@@ -776,6 +781,7 @@ if(Qt6_FOUND)
         ${CMAKE_SOURCE_DIR}/src/ui/animated_progress_bar.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/schedule_editor.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/control_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/config_validator.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/scenario_presets.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/scenario_selector.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/state_badge.cpp
@@ -854,6 +860,7 @@ if(Qt6_FOUND)
         ${CMAKE_SOURCE_DIR}/src/ui/animated_progress_bar.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/schedule_editor.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/control_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/config_validator.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/scenario_presets.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/scenario_selector.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/state_badge.cpp
@@ -942,6 +949,7 @@ if(Qt6_FOUND)
         ${CMAKE_SOURCE_DIR}/src/ui/animated_progress_bar.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/schedule_editor.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/control_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/config_validator.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/state_badge.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/fleet_summary_panel.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/dashboard_legend.cpp
@@ -962,5 +970,106 @@ if(Qt6_FOUND)
     add_test(NAME d5_regression
              COMMAND d5_regression)
     set_tests_properties(d5_regression
+        PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+    # --- Sprint 30 (D6) config validation tests (Qt Test) ----------------
+    # Builds the ConfigValidator plus the control panel and the shared context
+    # and runs the rules, blocked-action, inline-error, and regression tests
+    # offscreen.
+    add_executable(d6_rules
+        d6_rules_tests.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/config_validator.cpp
+    )
+    target_include_directories(d6_rules PRIVATE ${CMAKE_SOURCE_DIR}/src)
+    target_link_libraries(d6_rules PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
+    target_compile_features(d6_rules PRIVATE cxx_std_17)
+
+    if(MSVC)
+        target_compile_options(d6_rules PRIVATE /W4)
+    else()
+        target_compile_options(d6_rules PRIVATE -Wall -Wextra)
+    endif()
+
+    add_test(NAME d6_rules
+             COMMAND d6_rules)
+    set_tests_properties(d6_rules
+        PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+    add_executable(d6_blocked
+        d6_blocked_tests.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/config_validator.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/control_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/scenario_presets.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/scenario_selector.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/fleet_size_control.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/failure_rate_control.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/seed_control.cpp
+    )
+    target_include_directories(d6_blocked PRIVATE ${CMAKE_SOURCE_DIR}/src)
+    target_link_libraries(d6_blocked PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
+    target_compile_features(d6_blocked PRIVATE cxx_std_17)
+
+    if(MSVC)
+        target_compile_options(d6_blocked PRIVATE /W4)
+    else()
+        target_compile_options(d6_blocked PRIVATE -Wall -Wextra)
+    endif()
+
+    add_test(NAME d6_blocked
+             COMMAND d6_blocked)
+    set_tests_properties(d6_blocked
+        PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+    add_executable(d6_errors
+        d6_errors_tests.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/config_validator.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/control_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/scenario_presets.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/scenario_selector.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/fleet_size_control.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/failure_rate_control.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/seed_control.cpp
+    )
+    target_include_directories(d6_errors PRIVATE ${CMAKE_SOURCE_DIR}/src)
+    target_link_libraries(d6_errors PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
+    target_compile_features(d6_errors PRIVATE cxx_std_17)
+
+    if(MSVC)
+        target_compile_options(d6_errors PRIVATE /W4)
+    else()
+        target_compile_options(d6_errors PRIVATE -Wall -Wextra)
+    endif()
+
+    add_test(NAME d6_errors
+             COMMAND d6_errors)
+    set_tests_properties(d6_errors
+        PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+    add_executable(d6_regression
+        d6_regression_tests.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/config_validator.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/control_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/scenario_presets.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/scenario_selector.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/fleet_size_control.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/failure_rate_control.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/seed_control.cpp
+    )
+    target_include_directories(d6_regression PRIVATE ${CMAKE_SOURCE_DIR}/src)
+    target_link_libraries(d6_regression PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
+    target_compile_features(d6_regression PRIVATE cxx_std_17)
+
+    if(MSVC)
+        target_compile_options(d6_regression PRIVATE /W4)
+    else()
+        target_compile_options(d6_regression PRIVATE -Wall -Wextra)
+    endif()
+
+    add_test(NAME d6_regression
+             COMMAND d6_regression)
+    set_tests_properties(d6_regression
         PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 endif()

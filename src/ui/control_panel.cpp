@@ -8,6 +8,7 @@
 // PATCHORCH_API_URL env var (default http://localhost:5000).
 
 #include "control_panel.hpp"
+#include "config_validator.hpp"
 #include "demo_app_context.hpp"
 #include "failure_rate_control.hpp"
 #include "fleet_size_control.hpp"
@@ -15,6 +16,7 @@
 #include "seed_control.hpp"
 #include "scenario_selector.hpp"
 
+#include <QDoubleSpinBox>
 #include <QGroupBox>
 #include <QHBoxLayout>
 #include <QJsonDocument>
@@ -25,6 +27,7 @@
 #include <QNetworkReply>
 #include <QNetworkRequest>
 #include <QPushButton>
+#include <QSpinBox>
 #include <QStatusBar>
 #include <QVBoxLayout>
 #include <QUrl>
@@ -62,6 +65,7 @@ ControlPanelWindow::ControlPanelWindow(QWidget *parent)
     , m_statusLabel(nullptr)
     , m_diffLabel(nullptr)
     , m_confirmationLabel(nullptr)
+    , m_validationLabel(nullptr)
     , m_fleetSize(nullptr)
     , m_failureRate(nullptr)
     , m_seed(nullptr)
@@ -127,6 +131,18 @@ void ControlPanelWindow::buildUi()
     seedLayout->addWidget(m_seed);
     root->addWidget(seedBox);
 
+    // --- Sprint 30 (D6): config-validation inline error ---
+    // Shown near the config controls when a rollout is blocked because the
+    // configured fleet size / failure rate / seed is invalid. Empty and hidden
+    // when the config is valid.
+    m_validationLabel = new QLabel(central);
+    m_validationLabel->setObjectName(QStringLiteral("validationLabel"));
+    m_validationLabel->setWordWrap(true);
+    m_validationLabel->setStyleSheet(
+        QStringLiteral("color: #cf222e; font-weight: bold;"));
+    m_validationLabel->hide();
+    root->addWidget(m_validationLabel);
+
     // --- Control buttons ---
     auto *controlBox = new QGroupBox(QStringLiteral("Control Actions"), central);
     auto *controlLayout = new QVBoxLayout(controlBox);
@@ -178,6 +194,16 @@ void ControlPanelWindow::buildUi()
     connect(m_resumeButton, &QPushButton::clicked, this, &ControlPanelWindow::onResume);
     connect(m_rollbackButton, &QPushButton::clicked, this, &ControlPanelWindow::onRollback);
     connect(m_refreshButton, &QPushButton::clicked, this, &ControlPanelWindow::onRefreshStatus);
+
+    // Sprint 30 (D6): keep the inline error in sync with the config controls so
+    // an error clears as soon as the offending value is corrected.
+    connect(m_fleetSize->spinBox(), QOverload<int>::of(&QSpinBox::valueChanged), this,
+            [this](int) { validateConfig(); });
+    connect(m_failureRate->spinBox(),
+            QOverload<double>::of(&QDoubleSpinBox::valueChanged), this,
+            [this](double) { validateConfig(); });
+    connect(m_seed->spinBox(), QOverload<int>::of(&QSpinBox::valueChanged), this,
+            [this](int) { validateConfig(); });
 }
 
 void ControlPanelWindow::setContext(DemoAppContext *context)
@@ -216,6 +242,15 @@ void ControlPanelWindow::setContext(DemoAppContext *context)
                                      .arg(m_scheduleId->text().trimmed(), state));
             });
 
+    // Sprint 30 (D6): re-validate whenever the shared config changes so the
+    // inline error appears/clears as the values are corrected.
+    connect(m_context, &DemoAppContext::fleetSizeChanged, this,
+            [this](int) { validateConfig(); });
+    connect(m_context, &DemoAppContext::failureRateChanged, this,
+            [this](double) { validateConfig(); });
+    connect(m_context, &DemoAppContext::seedChanged, this,
+            [this](int) { validateConfig(); });
+
     // Write local edits back into the shared context (change-only setters make
     // the echo from scheduleIdChanged a no-op, so there is no feedback loop).
     connect(m_scheduleId, &QLineEdit::textChanged, this,
@@ -239,6 +274,12 @@ void ControlPanelWindow::onSchedule()
         setStatusMessage(QStringLiteral("Schedule ID is required."));
         return;
     }
+
+    // Sprint 30 (D6): block the rollout start if the config is invalid and show
+    // an inline error. The confirmation dialog and network request are never
+    // reached, so no rollout starts with invalid values.
+    if (!validateConfig())
+        return;
 
     const auto answer = QMessageBox::question(
         this, QStringLiteral("Confirm Schedule"),
@@ -306,6 +347,11 @@ void ControlPanelWindow::onRollback()
         setStatusMessage(QStringLiteral("Schedule ID is required."));
         return;
     }
+
+    // Sprint 30 (D6): block the rollback if the config is invalid and show an
+    // inline error, matching the rollout-start behaviour.
+    if (!validateConfig())
+        return;
 
     const auto answer = QMessageBox::question(
         this, QStringLiteral("Confirm Rollback"),
@@ -448,6 +494,42 @@ QString ControlPanelWindow::diffText() const
 QString ControlPanelWindow::confirmationText() const
 {
     return m_confirmationLabel != nullptr ? m_confirmationLabel->text() : QString();
+}
+
+QString ControlPanelWindow::validationText() const
+{
+    return m_validationLabel != nullptr ? m_validationLabel->text() : QString();
+}
+
+QString ControlPanelWindow::statusText() const
+{
+    return m_statusLabel != nullptr ? m_statusLabel->text() : QString();
+}
+
+bool ControlPanelWindow::validateConfig()
+{
+    // The shared context is the single source of truth when bound; otherwise
+    // fall back to the values currently held by the config controls.
+    const int fleetSize =
+        m_context != nullptr ? m_context->fleetSize() : m_fleetSize->fleetSize();
+    const double failureRate = m_context != nullptr
+                                   ? m_context->failureRate()
+                                   : m_failureRate->failureRate();
+    const int seed = m_context != nullptr ? m_context->seed() : m_seed->seed();
+
+    const ConfigValidator::Result result =
+        ConfigValidator::validate(fleetSize, failureRate, seed);
+
+    if (result.isValid()) {
+        m_validationLabel->setText(QString());
+        m_validationLabel->hide();
+        return true;
+    }
+
+    // Show the first offending field's message near the config controls.
+    m_validationLabel->setText(result.firstError());
+    m_validationLabel->show();
+    return false;
 }
 
 void ControlPanelWindow::setStatusMessage(const QString &message)
