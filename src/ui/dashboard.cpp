@@ -6,6 +6,7 @@
 
 #include "dashboard.hpp"
 #include "animated_progress_bar.hpp"
+#include "dashboard_legend.hpp"
 #include "demo_app_context.hpp"
 #include "fleet_summary_panel.hpp"
 #include "log.hpp"
@@ -71,6 +72,7 @@ DashboardWindow::DashboardWindow(QWidget *parent)
     , m_context(nullptr)
     , m_streamReply(nullptr)
     , m_summary(nullptr)
+    , m_legend(nullptr)
 {
     setWindowTitle(QStringLiteral("PatchOrchestrator — Dashboard"));
     resize(720, 420);
@@ -230,6 +232,16 @@ void DashboardWindow::buildUi()
     summaryDock->setFeatures(QDockWidget::NoDockWidgetFeatures);
     summaryDock->setWidget(m_summary);
     addDockWidget(Qt::TopDockWidgetArea, summaryDock);
+
+    // Sprint 24 (C7): dashboard legend explaining the color coding and state
+    // meanings for demo viewers. Docked below the fleet summary so viewers can
+    // read the color/state legend alongside the endpoint table.
+    m_legend = new DashboardLegend(this);
+    auto *legendDock = new QDockWidget(QStringLiteral("Legend"), this);
+    legendDock->setObjectName(QStringLiteral("legendDock"));
+    legendDock->setFeatures(QDockWidget::NoDockWidgetFeatures);
+    legendDock->setWidget(m_legend);
+    addDockWidget(Qt::BottomDockWidgetArea, legendDock);
 
     m_table = new QTableWidget(0, 3, this);
     m_table->setHorizontalHeaderLabels(

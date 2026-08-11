@@ -55,6 +55,8 @@ if(Qt6_FOUND)
         ${CMAKE_SOURCE_DIR}/src/ui/schedule_editor.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/control_panel.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/state_badge.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/fleet_summary_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/dashboard_legend.cpp
     )
     target_include_directories(a2_layout_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
     target_link_libraries(a2_layout_tests PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
@@ -90,6 +92,8 @@ if(Qt6_FOUND)
         ${CMAKE_SOURCE_DIR}/src/ui/schedule_editor.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/control_panel.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/state_badge.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/fleet_summary_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/dashboard_legend.cpp
     )
     target_include_directories(a3_context_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
     target_link_libraries(a3_context_tests PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
@@ -265,6 +269,8 @@ if(Qt6_FOUND)
         ${CMAKE_SOURCE_DIR}/src/ui/animated_progress_bar.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/state_badge.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/fleet_summary_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/dashboard_legend.cpp
     )
     target_include_directories(b6_dashboard_live_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
     target_link_libraries(b6_dashboard_live_tests PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
@@ -326,6 +332,8 @@ if(Qt6_FOUND)
         ${CMAKE_SOURCE_DIR}/src/ui/dashboard.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/state_badge.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/fleet_summary_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/dashboard_legend.cpp
     )
     target_include_directories(c1_animated_progress_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
     target_link_libraries(c1_animated_progress_tests PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
@@ -357,6 +365,8 @@ if(Qt6_FOUND)
         ${CMAKE_SOURCE_DIR}/src/ui/animated_progress_bar.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/state_badge.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/fleet_summary_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/dashboard_legend.cpp
     )
     target_include_directories(c2_color_state_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
     target_link_libraries(c2_color_state_tests PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
@@ -386,6 +396,8 @@ if(Qt6_FOUND)
         ${CMAKE_SOURCE_DIR}/src/ui/dashboard.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/animated_progress_bar.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/fleet_summary_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/dashboard_legend.cpp
     )
     target_include_directories(c3_state_badge_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
     target_link_libraries(c3_state_badge_tests PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
@@ -419,6 +431,7 @@ if(Qt6_FOUND)
         ${CMAKE_SOURCE_DIR}/src/ui/dashboard.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/animated_progress_bar.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/dashboard_legend.cpp
     )
     target_include_directories(c4_fleet_summary_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
     target_link_libraries(c4_fleet_summary_tests PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
@@ -451,6 +464,7 @@ if(Qt6_FOUND)
         ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/state_badge.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/fleet_summary_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/dashboard_legend.cpp
     )
     target_include_directories(c5_rollout_grouping_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
     target_link_libraries(c5_rollout_grouping_tests PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
@@ -483,6 +497,7 @@ if(Qt6_FOUND)
         ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/state_badge.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/fleet_summary_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/dashboard_legend.cpp
     )
     target_include_directories(c6_smooth_refresh_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
     target_link_libraries(c6_smooth_refresh_tests PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
@@ -503,5 +518,36 @@ if(Qt6_FOUND)
     add_test(NAME c6_regression
              COMMAND c6_smooth_refresh_tests t4_regression)
     set_tests_properties(c6_smooth c6_no_flicker c6_stream_driven c6_regression
+        PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+    # --- Sprint 24 (C7) dashboard legend tests (Qt Test) ------------
+    # Builds the dashboard legend plus the dashboard and runs the
+    # legend-renders, all-states, and regression tests offscreen.
+    add_executable(c7_dashboard_legend_tests
+        c7_dashboard_legend_tests.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/dashboard_legend.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/state_badge.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/dashboard.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/animated_progress_bar.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/fleet_summary_panel.cpp
+    )
+    target_include_directories(c7_dashboard_legend_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
+    target_link_libraries(c7_dashboard_legend_tests PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
+    target_compile_features(c7_dashboard_legend_tests PRIVATE cxx_std_17)
+
+    if(MSVC)
+        target_compile_options(c7_dashboard_legend_tests PRIVATE /W4)
+    else()
+        target_compile_options(c7_dashboard_legend_tests PRIVATE -Wall -Wextra)
+    endif()
+
+    add_test(NAME c7_legend_renders
+             COMMAND c7_dashboard_legend_tests t1_legendRenders)
+    add_test(NAME c7_all_states
+             COMMAND c7_dashboard_legend_tests t2_allStates)
+    add_test(NAME c7_regression
+             COMMAND c7_dashboard_legend_tests t3_regression)
+    set_tests_properties(c7_legend_renders c7_all_states c7_regression
         PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 endif()

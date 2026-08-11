@@ -20,6 +20,7 @@ class QTableWidget;
 class DemoAppContext;
 class AnimatedProgressBar;
 class FleetSummaryPanel;
+class DashboardLegend;
 
 // Sprint 22 (C5): a rollout stage (wave/group) as defined by the schedule
 // editor (P9). Each stage has an id, an order, and the set of group ids that
@@ -98,6 +99,10 @@ public:
     // after construction).
     FleetSummaryPanel *summaryPanel() const { return m_summary; }
 
+    // Sprint 24 (C7): test accessor — the dashboard legend explaining the
+    // color coding and state meanings (never null after construction).
+    DashboardLegend *legend() const { return m_legend; }
+
     // Sprint 22 (C5): rollout-stage grouping. Set the stages (from the
     // schedule editor / P9) to group endpoints by stage with stage headers and
     // per-stage progress. Passing an empty list disables grouping (flat table).
@@ -150,6 +155,10 @@ private:
 
     // Sprint 21 (C4): fleet summary panel aggregating counts by state.
     FleetSummaryPanel *m_summary;
+
+    // Sprint 24 (C7): dashboard legend explaining the color coding and state
+    // meanings for demo viewers.
+    DashboardLegend *m_legend;
 
     // Sprint 22 (C5): rollout-stage grouping state.
     QVector<RolloutStage> m_stages;

@@ -55,6 +55,7 @@ if(Qt6_FOUND)
         ui/demo_app_context.cpp
         ui/state_badge.cpp
         ui/fleet_summary_panel.cpp
+        ui/dashboard_legend.cpp
     )
     target_link_libraries(patchorchestrator_ui PRIVATE Qt6::Widgets Qt6::Network)
     target_compile_features(patchorchestrator_ui PRIVATE cxx_std_17)
@@ -133,6 +134,7 @@ if(Qt6_FOUND)
         ui/control_panel.cpp
         ui/state_badge.cpp
         ui/fleet_summary_panel.cpp
+        ui/dashboard_legend.cpp
     )
     target_link_libraries(patchorchestrator_demo PRIVATE Qt6::Widgets Qt6::Network)
     target_include_directories(patchorchestrator_demo PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
