@@ -26,6 +26,11 @@ app.UseSwaggerUI(options =>
 // In-memory schedule store (no database for this phase).
 var schedules = new ConcurrentDictionary<string, Schedule>();
 
+// Live engine sessions keyed by schedule id (Sprint 13 / B3). Each schedule
+// owns one long-lived EngineSession so pause/resume/rollback mutate the live
+// engine state in place instead of returning a status string.
+var sessions = new ConcurrentDictionary<string, EngineSession>();
+
 // --- Health ---
 app.MapGet("/api/health", () =>
 {
@@ -34,7 +39,7 @@ app.MapGet("/api/health", () =>
 });
 
 // --- Create schedule ---
-app.MapPost("/api/schedules", (CreateScheduleRequest request) =>
+app.MapPost("/api/schedules", (CreateScheduleRequest request, IEngineBridge bridge) =>
 {
     if (string.IsNullOrWhiteSpace(request.Id))
     {
@@ -50,17 +55,22 @@ app.MapPost("/api/schedules", (CreateScheduleRequest request) =>
         Id = request.Id,
         Package = request.Package,
         GroupId = request.GroupId,
-        Status = "pending"
+        Status = "running"
     };
 
     schedules[request.Id] = schedule;
+
+    // Start a live engine session for this schedule so the control endpoints
+    // (pause/resume/rollback) can mutate real engine state.
+    sessions[request.Id] = new EngineSession(bridge, CreateDefaultRequest());
+
     return Results.Created($"/api/schedules/{request.Id}", schedule);
 });
 
-// --- Pause / Resume / Rollback ---
-app.MapPost("/api/schedules/{id}/pause", (string id) => ApplyTransition(id, "paused"));
-app.MapPost("/api/schedules/{id}/resume", (string id) => ApplyTransition(id, "running"));
-app.MapPost("/api/schedules/{id}/rollback", (string id) => ApplyTransition(id, "rolled-back"));
+// --- Pause / Resume / Rollback (live EngineSession) ---
+app.MapPost("/api/schedules/{id}/pause", (string id) => ControlSession(id, s => s.Pause()));
+app.MapPost("/api/schedules/{id}/resume", (string id) => ControlSession(id, s => s.Resume()));
+app.MapPost("/api/schedules/{id}/rollback", (string id) => ControlSession(id, s => s.Rollback()));
 
 // --- Simulate (drive the Python engine through the bridge) ---
 app.MapPost("/api/schedules/{id}/simulate", (string id, SimulateRequest request, IEngineBridge bridge) =>
@@ -107,21 +117,74 @@ app.MapGet("/api/schedules/{id}/status", (string id) =>
     return Results.Ok(new { id = schedule.Id, status = schedule.Status });
 });
 
+// Dispose all live engine sessions (and their Python subprocesses) on shutdown.
+app.Lifetime.ApplicationStopped.Register(() =>
+{
+    foreach (var session in sessions.Values)
+    {
+        session.Dispose();
+    }
+    sessions.Clear();
+});
+
 app.Run();
 
-IResult ApplyTransition(string id, string newStatus)
+// Invoke a live EngineSession operation for a schedule and reflect the new
+// engine state back onto the schedule record. Returns 200 with the updated
+// state, 404 for an unknown schedule id, and 500 if the engine fails.
+IResult ControlSession(string id, Func<EngineSession, EngineResult> action)
 {
     if (!schedules.TryGetValue(id, out var schedule))
     {
-        logger.LogWarning("Transition to {NewStatus} requested for unknown schedule {Id}",
-            newStatus, id);
+        logger.LogWarning("Control requested for unknown schedule {Id}", id);
         return Results.NotFound(new { error = $"schedule '{id}' not found" });
     }
-    logger.LogInformation("Schedule {Id}: {OldStatus} -> {NewStatus}",
-        id, schedule.Status, newStatus);
-    schedule.Status = newStatus;
-    return Results.Ok(new { id = schedule.Id, status = schedule.Status });
+
+    if (!sessions.TryGetValue(id, out var session))
+    {
+        logger.LogWarning("No live session for schedule {Id}", id);
+        return Results.NotFound(new { error = $"schedule '{id}' has no live session" });
+    }
+
+    try
+    {
+        var result = action(session);
+        schedule.Status = StatusFromResult(result);
+        logger.LogInformation("Schedule {Id} control -> {Status}", id, schedule.Status);
+        return Results.Ok(new { id = schedule.Id, status = schedule.Status });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Control for schedule {Id} failed", id);
+        return Results.Problem("Engine control failed", statusCode: 500);
+    }
 }
+
+// Derive a single schedule status string from the live engine result.
+static string StatusFromResult(EngineResult result)
+{
+    if (result.RolledBack)
+    {
+        return "rolled_back";
+    }
+
+    var states = result.Endpoints.Select(e => e.State).Distinct().ToList();
+    return states.Count == 1 ? states[0] : "running";
+}
+
+// Default live fleet configuration used when a schedule is created.
+static EngineRequest CreateDefaultRequest() => new(
+    new List<EngineEndpointRequest>
+    {
+        new("ep-1", 0.1),
+        new("ep-2", 0.0),
+        new("ep-3", 0.3),
+    },
+    Seed: 42);
+
+// Expose the generated Program class to the integration test project so it
+// can bootstrap the web host via WebApplicationFactory<Program>.
+public partial class Program { }
 
 public record CreateScheduleRequest(string Id, string? Package, string? GroupId);
 
