@@ -85,9 +85,12 @@ void DemoMainWindow::buildUi()
     m_control->setContext(m_context);
 
     // Sprint 35 (E4): the audit log panel shows the live operator action log.
-    // For the widget tests it is driven directly via setLog()/appendEntry();
-    // real-time auto-refresh is a later sprint (E6).
+    // Sprint 37 (E6): it is wired to the shared context so it auto-refreshes
+    // in real time as actions occur, using the active schedule id and API base
+    // URL. For standalone widget tests it can still be driven directly via
+    // setLog()/appendEntry()/applyFetchedLog().
     m_auditLog = new AuditLogPanel(this);
+    m_auditLog->setContext(m_context);
 
     m_tabs->addTab(m_dashboard, QStringLiteral("Dashboard"));
     m_tabs->addTab(m_schedule, QStringLiteral("Schedule Editor"));

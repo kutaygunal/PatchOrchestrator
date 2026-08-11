@@ -48,6 +48,8 @@ if(Qt6_FOUND)
         a2_layout_tests.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/demo_main_window.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/audit_log_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/timestamp_format.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/roadmap_tab.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/roadmap_model.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/dashboard.cpp
@@ -91,6 +93,8 @@ if(Qt6_FOUND)
         a3_context_tests.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/demo_main_window.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/audit_log_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/timestamp_format.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/roadmap_tab.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/roadmap_model.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/dashboard.cpp
@@ -618,6 +622,8 @@ if(Qt6_FOUND)
         ${CMAKE_SOURCE_DIR}/src/ui/fleet_size_control.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/demo_main_window.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/audit_log_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/timestamp_format.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/roadmap_tab.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/roadmap_model.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/dashboard.cpp
@@ -696,6 +702,8 @@ if(Qt6_FOUND)
         ${CMAKE_SOURCE_DIR}/src/ui/failure_rate_control.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/demo_main_window.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/audit_log_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/timestamp_format.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/roadmap_tab.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/roadmap_model.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/dashboard.cpp
@@ -775,6 +783,8 @@ if(Qt6_FOUND)
         ${CMAKE_SOURCE_DIR}/src/ui/seed_control.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/demo_main_window.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/audit_log_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/timestamp_format.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/roadmap_tab.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/roadmap_model.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/dashboard.cpp
@@ -854,6 +864,8 @@ if(Qt6_FOUND)
         ${CMAKE_SOURCE_DIR}/src/ui/scenario_presets.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/demo_main_window.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/audit_log_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/timestamp_format.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/roadmap_tab.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/roadmap_model.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/dashboard.cpp
@@ -943,6 +955,8 @@ if(Qt6_FOUND)
         ${CMAKE_SOURCE_DIR}/src/ui/scenario_presets.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/demo_main_window.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/audit_log_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/timestamp_format.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/roadmap_tab.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/roadmap_model.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/dashboard.cpp
@@ -1080,6 +1094,7 @@ if(Qt6_FOUND)
         e4_render_tests.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/audit_log_panel.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/timestamp_format.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
     )
     target_include_directories(e4_render PRIVATE ${CMAKE_SOURCE_DIR}/src)
     target_link_libraries(e4_render PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
@@ -1100,6 +1115,7 @@ if(Qt6_FOUND)
         e4_updates_tests.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/audit_log_panel.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/timestamp_format.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
     )
     target_include_directories(e4_updates PRIVATE ${CMAKE_SOURCE_DIR}/src)
     target_link_libraries(e4_updates PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
@@ -1180,6 +1196,7 @@ if(Qt6_FOUND)
         e5_display_tests.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/audit_log_panel.cpp
         ${CMAKE_SOURCE_DIR}/src/ui/timestamp_format.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
     )
     target_include_directories(e5_display PRIVATE ${CMAKE_SOURCE_DIR}/src)
     target_link_libraries(e5_display PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
@@ -1231,5 +1248,88 @@ if(Qt6_FOUND)
     add_test(NAME e5_regression
              COMMAND e5_regression)
     set_tests_properties(e5_regression
+        PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+    # --- Sprint 37 (E6) log auto-refresh tests (Qt Test) ------------------
+    # Builds the AuditLogPanel plus the shared context and runs the refresh-on-
+    # event, multiple-event, and regression tests offscreen. The refresh logic
+    # is driven deterministically via applyFetchedLog (no live server needed).
+    add_executable(e6_refresh
+        e6_refresh_tests.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/audit_log_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/timestamp_format.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
+    )
+    target_include_directories(e6_refresh PRIVATE ${CMAKE_SOURCE_DIR}/src)
+    target_link_libraries(e6_refresh PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
+    target_compile_features(e6_refresh PRIVATE cxx_std_17)
+
+    if(MSVC)
+        target_compile_options(e6_refresh PRIVATE /W4)
+    else()
+        target_compile_options(e6_refresh PRIVATE -Wall -Wextra)
+    endif()
+
+    add_test(NAME e6_refresh
+             COMMAND e6_refresh)
+    set_tests_properties(e6_refresh
+        PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+    add_executable(e6_multiple
+        e6_multiple_tests.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/audit_log_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/timestamp_format.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
+    )
+    target_include_directories(e6_multiple PRIVATE ${CMAKE_SOURCE_DIR}/src)
+    target_link_libraries(e6_multiple PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
+    target_compile_features(e6_multiple PRIVATE cxx_std_17)
+
+    if(MSVC)
+        target_compile_options(e6_multiple PRIVATE /W4)
+    else()
+        target_compile_options(e6_multiple PRIVATE -Wall -Wextra)
+    endif()
+
+    add_test(NAME e6_multiple
+             COMMAND e6_multiple)
+    set_tests_properties(e6_multiple
+        PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+    add_executable(e6_regression
+        e6_regression_tests.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/audit_log_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/timestamp_format.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_main_window.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/roadmap_tab.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/roadmap_model.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/dashboard.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/animated_progress_bar.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/schedule_editor.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/control_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/scenario_presets.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/scenario_selector.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/config_validator.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/state_badge.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/fleet_summary_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/dashboard_legend.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/fleet_size_control.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/failure_rate_control.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/seed_control.cpp
+    )
+    target_include_directories(e6_regression PRIVATE ${CMAKE_SOURCE_DIR}/src)
+    target_link_libraries(e6_regression PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
+    target_compile_features(e6_regression PRIVATE cxx_std_17)
+
+    if(MSVC)
+        target_compile_options(e6_regression PRIVATE /W4)
+    else()
+        target_compile_options(e6_regression PRIVATE -Wall -Wextra)
+    endif()
+
+    add_test(NAME e6_regression
+             COMMAND e6_regression)
+    set_tests_properties(e6_regression
         PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 endif()
