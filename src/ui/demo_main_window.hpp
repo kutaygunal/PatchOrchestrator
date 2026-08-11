@@ -16,6 +16,7 @@
 #include <QMainWindow>
 
 class QTabWidget;
+class AuditLogPanel;
 class DashboardWindow;
 class ScheduleEditorWindow;
 class ControlPanelWindow;
@@ -34,6 +35,7 @@ public:
     ScheduleEditorWindow *scheduleEditor() const { return m_schedule; }
     ControlPanelWindow *controlPanel() const { return m_control; }
     RoadmapTab *roadmap() const { return m_roadmap; }
+    AuditLogPanel *auditLog() const { return m_auditLog; }
     QTabWidget *tabWidget() const { return m_tabs; }
 
     // Sprint 3 (A3): the single shared app context bound to all three panels.
@@ -54,6 +56,7 @@ private:
     ScheduleEditorWindow *m_schedule;
     ControlPanelWindow *m_control;
     RoadmapTab *m_roadmap;
+    AuditLogPanel *m_auditLog;
     DemoAppContext *m_context;
 };
 

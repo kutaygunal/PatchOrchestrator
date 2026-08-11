@@ -1072,4 +1072,81 @@ if(Qt6_FOUND)
              COMMAND d6_regression)
     set_tests_properties(d6_regression
         PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+    # --- Sprint 35 (E4) audit log panel tests (Qt Test) ------------------
+    # Builds the AuditLogPanel and runs the render, update, and regression
+    # tests offscreen.
+    add_executable(e4_render
+        e4_render_tests.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/audit_log_panel.cpp
+    )
+    target_include_directories(e4_render PRIVATE ${CMAKE_SOURCE_DIR}/src)
+    target_link_libraries(e4_render PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
+    target_compile_features(e4_render PRIVATE cxx_std_17)
+
+    if(MSVC)
+        target_compile_options(e4_render PRIVATE /W4)
+    else()
+        target_compile_options(e4_render PRIVATE -Wall -Wextra)
+    endif()
+
+    add_test(NAME e4_render
+             COMMAND e4_render)
+    set_tests_properties(e4_render
+        PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+    add_executable(e4_updates
+        e4_updates_tests.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/audit_log_panel.cpp
+    )
+    target_include_directories(e4_updates PRIVATE ${CMAKE_SOURCE_DIR}/src)
+    target_link_libraries(e4_updates PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
+    target_compile_features(e4_updates PRIVATE cxx_std_17)
+
+    if(MSVC)
+        target_compile_options(e4_updates PRIVATE /W4)
+    else()
+        target_compile_options(e4_updates PRIVATE -Wall -Wextra)
+    endif()
+
+    add_test(NAME e4_updates
+             COMMAND e4_updates)
+    set_tests_properties(e4_updates
+        PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+    add_executable(e4_regression
+        e4_regression_tests.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/audit_log_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_main_window.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/demo_app_context.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/roadmap_tab.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/roadmap_model.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/dashboard.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/animated_progress_bar.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/schedule_editor.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/control_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/scenario_presets.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/scenario_selector.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/config_validator.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/state_badge.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/fleet_summary_panel.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/dashboard_legend.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/fleet_size_control.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/failure_rate_control.cpp
+        ${CMAKE_SOURCE_DIR}/src/ui/seed_control.cpp
+    )
+    target_include_directories(e4_regression PRIVATE ${CMAKE_SOURCE_DIR}/src)
+    target_link_libraries(e4_regression PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
+    target_compile_features(e4_regression PRIVATE cxx_std_17)
+
+    if(MSVC)
+        target_compile_options(e4_regression PRIVATE /W4)
+    else()
+        target_compile_options(e4_regression PRIVATE -Wall -Wextra)
+    endif()
+
+    add_test(NAME e4_regression
+             COMMAND e4_regression)
+    set_tests_properties(e4_regression
+        PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 endif()

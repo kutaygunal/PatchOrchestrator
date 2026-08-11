@@ -55,6 +55,7 @@ if(Qt6_FOUND)
         ui/demo_app_context.cpp
         ui/state_badge.cpp
         ui/fleet_summary_panel.cpp
+        ui/audit_log_panel.cpp
         ui/dashboard_legend.cpp
     )
     target_link_libraries(patchorchestrator_ui PRIVATE Qt6::Widgets Qt6::Network)
@@ -141,6 +142,7 @@ if(Qt6_FOUND)
         ui/control_panel.cpp
         ui/state_badge.cpp
         ui/fleet_summary_panel.cpp
+        ui/audit_log_panel.cpp
         ui/dashboard_legend.cpp
         ui/fleet_size_control.cpp
         ui/failure_rate_control.cpp

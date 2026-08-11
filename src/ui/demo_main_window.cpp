@@ -11,6 +11,7 @@
 // reorderable.
 
 #include "demo_main_window.hpp"
+#include "audit_log_panel.hpp"
 #include "control_panel.hpp"
 #include "dashboard.hpp"
 #include "demo_app_context.hpp"
@@ -39,6 +40,7 @@ DemoMainWindow::DemoMainWindow(QWidget *parent)
     , m_schedule(nullptr)
     , m_control(nullptr)
     , m_roadmap(nullptr)
+    , m_auditLog(nullptr)
     , m_context(nullptr)
 {
     setWindowTitle(QStringLiteral("PatchOrchestrator — Demo Hub"));
@@ -82,10 +84,16 @@ void DemoMainWindow::buildUi()
     m_schedule->setContext(m_context);
     m_control->setContext(m_context);
 
+    // Sprint 35 (E4): the audit log panel shows the live operator action log.
+    // For the widget tests it is driven directly via setLog()/appendEntry();
+    // real-time auto-refresh is a later sprint (E6).
+    m_auditLog = new AuditLogPanel(this);
+
     m_tabs->addTab(m_dashboard, QStringLiteral("Dashboard"));
     m_tabs->addTab(m_schedule, QStringLiteral("Schedule Editor"));
     m_tabs->addTab(m_control, QStringLiteral("Control Panel"));
     m_tabs->addTab(m_roadmap, QStringLiteral("Roadmap"));
+    m_tabs->addTab(m_auditLog, QStringLiteral("Audit Log"));
 }
 
 QByteArray DemoMainWindow::saveLayout() const
