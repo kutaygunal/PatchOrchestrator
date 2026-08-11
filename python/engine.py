@@ -62,6 +62,9 @@ class Rollout:
         if self.running and not self.paused:
             self.paused = True
             self.running = False
+            for ep in self.endpoints:
+                if ep.state == "running":
+                    ep.state = "paused"
             _log("INFO", "rollout paused")
 
     def resume(self):
@@ -69,6 +72,9 @@ class Rollout:
         if self.paused:
             self.paused = False
             self.running = True
+            for ep in self.endpoints:
+                if ep.state == "paused":
+                    ep.state = "running"
             _log("INFO", "rollout resumed")
 
     def rollback(self):
